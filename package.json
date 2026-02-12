@@ -30,5 +30,18 @@
   "engines": {
     "node": "^18.0.0",
     "npm": ">=8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seazerth/2503307-six-cities-6.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Seazerth/2503307-six-cities-6/issues"
+  },
+  "homepage": "https://github.com/Seazerth/2503307-six-cities-6#readme",
+  "dependencies": {
+    "chalk": "^5.6.2"
   }
 }
