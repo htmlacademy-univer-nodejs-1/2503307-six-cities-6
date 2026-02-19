@@ -1,3 +1,2 @@
-title	price	city
-Уютная квартира	1200	Москва
-Студия на набережной	900	Санкт-Петербург
+Уютная квартира	Хорошая квартира в центре	2026-02-19	Paris	preview.jpg	img1.jpg;img2.jpg;img3.jpg	true	false	4.5	apartment	2	3	120	WiFi;Kitchen;Cable TV	user1
+Студия у моря	Отличный вид на море	2026-02-18	Amsterdam	preview2.jpg	img1.jpg;img2.jpg;img3.jpg	false	true	4.0	room	1	2	90	WiFi;Heating	user2
