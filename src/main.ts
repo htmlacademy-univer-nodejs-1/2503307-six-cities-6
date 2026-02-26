@@ -3,6 +3,6 @@ import { runCLI } from './cli/cli.js'; // <-- путь к cli.ts после ко
 const args = process.argv.slice(2);
 runCLI(args).catch((error) => {
   console.error('Ошибка:', error);
-  process.exit(1);
+  throw error;
 });
 

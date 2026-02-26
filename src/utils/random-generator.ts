@@ -28,7 +28,7 @@ export class RandomGenerator {
   /**
    * Generate a random decimal number (for rating)
    */
-  public static getRandomDecimal(min: number, max: number, decimals: number = 1): number {
+  public static getRandomDecimal(min: number, max: number, decimals = 1): number {
     const num = Math.random() * (max - min) + min;
     return parseFloat(num.toFixed(decimals));
   }

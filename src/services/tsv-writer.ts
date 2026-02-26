@@ -1,6 +1,6 @@
-import { createWriteStream } from "fs";
-import { Writable } from "stream";
-import { Offer } from "../types/offer.type.js";
+import { createWriteStream } from 'node:fs';
+import { Writable } from 'node:stream';
+import { Offer } from '../types/offer.type.js';
 
 /**
  * Service for writing offers to TSV file using streams
@@ -16,7 +16,7 @@ export class TSVWriter {
       offer.postDate,
       offer.city,
       offer.previewImage,
-      offer.images.join(";"),
+      offer.images.join(';'),
       offer.isPremium,
       offer.isFavorite,
       offer.rating,
@@ -24,9 +24,9 @@ export class TSVWriter {
       offer.rooms,
       offer.guests,
       offer.price,
-      offer.facilities.join(";"),
+      offer.facilities.join(';'),
       offer.author,
-    ].join("\t");
+    ].join('\t');
   }
 
   /**
@@ -34,11 +34,11 @@ export class TSVWriter {
    */
   public static async writeToFile(filePath: string, offers: Offer[]): Promise<void> {
     return new Promise((resolve, reject) => {
-      const writeStream: Writable = createWriteStream(filePath, { encoding: "utf-8" });
+      const writeStream: Writable = createWriteStream(filePath, { encoding: 'utf-8' });
 
       // Write header
       const header =
-        "title\tdescription\tpostDate\tcity\tpreviewImage\timages\tisPremium\tisFavorite\trating\ttype\trooms\tguests\tprice\tfacilities\tauthor\n";
+        'title\tdescription\tpostDate\tcity\tpreviewImage\timages\tisPremium\tisFavorite\trating\ttype\trooms\tguests\tprice\tfacilities\tauthor\n';
       writeStream.write(header);
 
       // Write each offer
@@ -49,11 +49,11 @@ export class TSVWriter {
 
       writeStream.end();
 
-      writeStream.on("error", (err) => {
+      writeStream.on('error', (err) => {
         reject(new Error(`Failed to write TSV file: ${err.message}`));
       });
 
-      writeStream.on("finish", () => {
+      writeStream.on('finish', () => {
         resolve();
       });
     });
