@@ -1,12 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import chalk from 'chalk';
+import { Container } from 'inversify';
 import { OfferGenerator } from '../services/offer-generator.js';
 import { MockDataFetcher } from '../services/mock-data-fetcher.js';
 import { TSVWriter } from '../services/tsv-writer.js';
 import { ImportCommand } from './commands/import.command.js';
+import { Component } from '../shared/types/index.js';
+import { UserService } from '../shared/modules/user/user-service.interface.js';
+import { CategoryService } from '../shared/modules/category/index.js';
+import { OfferService } from '../shared/modules/offer/index.js';
+import { DatabaseClient } from '../shared/libs/database-client/index.js';
+import { getMongoURI } from '../shared/helpers/index.js';
+import { DEFAULT_DB_PORT } from './commands/command.constant.js';
 
-export const runCLI = async (args: string[]): Promise<void> => {
+export const runCLI = async (args: string[], container: Container): Promise<void> => {
 
   const showHelp = () => {
     console.log(chalk.blue(`
@@ -14,8 +22,9 @@ export const runCLI = async (args: string[]): Promise<void> => {
 
 --help                                        Показать список команд
 --version                                     Показать версию приложения
---import <file> <dblogin> <dbpassword>        Импортировать данные из TSV файла
-<dbhost> <dbname> <salt>
+--import <file> <uri> <salt>                   Импортировать данные (uri - MongoDB connection string)
+--import <file> <login> <password> <host>     Импортировать данные (отдельные параметры)
+<dbname> <salt> [port]
 --generate <n> <filepath> <url>               Сгенерировать тестовые данные
     `));
   };
@@ -28,15 +37,43 @@ export const runCLI = async (args: string[]): Promise<void> => {
     console.log(chalk.green(`Версия: ${packageJSON.version}`));
   };
 
-  const importData = async (filePath?: string, dbLogin?: string, dbPassword?: string, dbHost?: string, dbName?: string, salt?: string): Promise<void> => {
-    if (!filePath || !dbLogin || !dbPassword || !dbHost || !dbName || !salt) {
-      console.error(chalk.red('Использование: --import <file> <dblogin> <dbpassword> <dbhost> <dbname> <salt>'));
+  const importData = async (importArgs: string[]): Promise<void> => {
+    const filePath = importArgs[0];
+    const hasUriFormat = importArgs.length >= 3 && importArgs[1]?.startsWith('mongodb');
+    const hasMultiFormat = importArgs.length >= 6;
+
+    let uri: string;
+    let salt: string;
+
+    if (hasUriFormat) {
+      uri = importArgs[1];
+      salt = importArgs[2];
+    } else if (hasMultiFormat) {
+      const [login, password, host] = [importArgs[1], importArgs[2], importArgs[3]];
+      const hasPort = importArgs.length >= 7;
+      const port = hasPort ? importArgs[4] : DEFAULT_DB_PORT;
+      const dbname = hasPort ? importArgs[5] : importArgs[4];
+      salt = hasPort ? importArgs[6] : importArgs[5];
+      uri = getMongoURI(login, password, host, port, dbname);
+    } else {
+      console.error(chalk.red('Использование: --import <file> <uri> <salt>'));
+      console.error(chalk.red('Или: --import <file> <login> <password> <host> <dbname> <salt> [port]'));
+      return;
+    }
+
+    if (!filePath || !uri || !salt) {
+      console.error(chalk.red('Отсутствуют обязательные параметры'));
       return;
     }
 
     try {
-      const command = new ImportCommand();
-      await command.execute(filePath, dbLogin, dbPassword, dbHost, dbName, salt);
+      const userService = container.get<UserService>(Component.UserService);
+      const categoryService = container.get<CategoryService>(Component.CategoryService);
+      const offerService = container.get<OfferService>(Component.OfferService);
+      const databaseClient = container.get<DatabaseClient>(Component.DatabaseClient);
+
+      const command = new ImportCommand(userService, categoryService, offerService, databaseClient);
+      await command.execute(filePath, uri, salt);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(chalk.red(`Ошибка импорта: ${errorMessage}`));
@@ -98,7 +135,7 @@ export const runCLI = async (args: string[]): Promise<void> => {
         showVersion();
         break;
       case '--import':
-        await importData(args[1], args[2], args[3], args[4], args[5], args[6]);
+        await importData(args.slice(1));
         break;
       case '--generate':
         await generateData(args[1], args[2], args[3]);

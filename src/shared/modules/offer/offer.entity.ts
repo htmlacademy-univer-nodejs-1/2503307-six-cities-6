@@ -38,10 +38,9 @@ export class OfferEntity extends defaultClasses.TimeStamps {
   public commentCount!: number;
 
   @prop({
-    ref: CategoryEntity,
+    ref: () => CategoryEntity,
     required: true,
-    default: [],
-    _id: false
+    default: []
   })
   public categories!: Ref<CategoryEntity>[];
 
