@@ -23,40 +23,27 @@ export class DefaultAuthService implements AuthService {
   }
 
   public async verify(token: string): Promise<DocumentType<UserEntity> | null> {
-    try {
-      // В реальном приложении здесь будет верификация JWT токена
-      // Для демонстрации просто проверяем формат токена
-      if (!token.startsWith('token_')) {
-        return null;
-      }
-
-      const userId = token.split('_')[1];
-      const user = await this.userService.findById(userId);
-      return user;
-    } catch (error) {
-      this.logger.warn('Invalid token provided');
-      return null;
-    }
-  }
-
-  public async login(email: string): Promise<DocumentType<UserEntity> | null> {
+    // В реальном приложении здесь будет проверка JWT токена
+    // Для демонстрации просто ищем пользователя по email из токена
+    const email = token.split('_')[1];
     const user = await this.userService.findByEmail(email);
 
-    if (!user) {
-      this.logger.warn(`Login failed: user with email ${email} not found`);
-      return null;
-    }
+    this.logger.info(`Token verification: ${user ? 'success' : 'failed'}`);
+    return user;
+  }
 
-    // В реальном приложении здесь должна быть проверка пароля
-    // Например: if (!await bcrypt.compare(password, user.getPassword())) return null;
+  public async login(email: string, _password: string): Promise<DocumentType<UserEntity> | null> {
+    // В реальном приложении здесь будет проверка учетных данных
+    // Для демонстрации просто ищем пользователя по email
+    const user = await this.userService.findByEmail(email);
 
     this.logger.info(`User ${email} logged in successfully`);
     return user;
   }
 
-  public async logout(): Promise<void> {
+  public async logout(token: string): Promise<void> {
     // В реальном приложении здесь может быть добавление токена в черный список
-    this.logger.info('User logged out');
+    this.logger.info(`User with token ${token} logged out`);
   }
 
   public async getCurrentUser(token: string): Promise<DocumentType<UserEntity> | null> {
