@@ -1,3 +1,3 @@
-export { Config } from './config.interface.js';
-export { loadConfig } from './config.js';
-
+export * from './config.interface.js';
+export * from './rest.config.js';
+export * from './rest.schema.js';

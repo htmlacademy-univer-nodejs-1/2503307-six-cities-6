@@ -10,7 +10,7 @@ const RETRY_TIMEOUT = 1000;
 
 @injectable()
 export class MongoDatabaseClient implements DatabaseClient {
-  private mongoose: typeof Mongoose | null = null;
+  private mongoose: typeof Mongoose;
   private isConnected: boolean;
 
   constructor(
@@ -52,9 +52,7 @@ export class MongoDatabaseClient implements DatabaseClient {
       throw new Error('Not connected to the database');
     }
 
-    if (this.mongoose) {
-      await this.mongoose.disconnect?.();
-    }
+    await this.mongoose.disconnect?.();
     this.isConnected = false;
     this.logger.info('Database connection closed.');
   }

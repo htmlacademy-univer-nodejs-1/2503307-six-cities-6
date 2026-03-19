@@ -1,0 +1,3 @@
+apis:
+  specification/specification.yml:
+    alias: six-cities-api

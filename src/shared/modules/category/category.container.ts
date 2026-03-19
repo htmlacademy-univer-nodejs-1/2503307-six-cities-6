@@ -8,8 +8,8 @@ import { CategoryEntity, CategoryModel } from './category.entity.js';
 export function createCategoryContainer() {
   const categoryContainer = new Container();
 
+  categoryContainer.bind<CategoryService>(Component.CategoryService).to(DefaultCategoryService);
   categoryContainer.bind<types.ModelType<CategoryEntity>>(Component.CategoryModel).toConstantValue(CategoryModel);
-  categoryContainer.bind<CategoryService>(Component.CategoryService).to(DefaultCategoryService).inSingletonScope();
 
   return categoryContainer;
 }
