@@ -1,28 +1,21 @@
 import { Logger } from './logger.interface.js';
+import { getErrorMessage } from '../../helpers/index.js';
 
 export class ConsoleLogger implements Logger {
-  public debug(message: string, error?: Error): void {
-    console.debug(message);
-    if (error) {
-      console.debug(error);
-    }
+  public debug(message: string, ...args: unknown[]): void {
+    console.debug(message, ...args);
   }
 
-  public error(message: string, error?: Error): void {
-    console.error(message);
-    if (error) {
-      console.error(error.toString());
-    }
+  public error(message: string, error: Error, ...args: unknown[]): void {
+    console.error(message, ...args);
+    console.error(`Error message: ${getErrorMessage(error)}`);
   }
 
-  public info(message: string): void {
-    console.info(message);
+  public info(message: string, ...args: unknown[]): void {
+    console.info(message, ...args);
   }
 
-  public warn(message: string, error?: Error): void {
-    console.warn(message);
-    if (error) {
-      console.warn(error.toString());
-    }
+  public warn(message: string, ...args: unknown[]): void {
+    console.warn(message, ...args);
   }
 }

@@ -1,17 +1,36 @@
-import { CreateOfferDto } from '../modules/offer/dto/create-offer.dto.js';
-import { OfferType } from '../types/index.js';
+import { Offer, OfferType } from '../types/index.js';
 
-export function createOffer(line: string): CreateOfferDto {
-  const parts = line.split('\t');
+export function createOffer(offerData: string): Offer {
+  const [
+    title,
+    description,
+    createdDate,
+    image,
+    type,
+    price,
+    categories,
+    firstname,
+    lastname,
+    email,
+    avatarPath
+  ] = offerData.replace('\n', '').split('\t');
+
+  const user = {
+    email,
+    firstname,
+    lastname,
+    avatarPath
+  };
 
   return {
-    title: parts[0],
-    description: parts[1],
-    postDate: new Date(parts[2]),
-    image: parts[3],
-    type: parts[4].toLowerCase() === 'buy' ? OfferType.Buy : OfferType.Sell,
-    price: parseInt(parts[5], 10),
-    categories: parts[6].split(';').map((cat) => cat.trim()),
-    userId: ''
+    title,
+    description,
+    image,
+    user,
+    postDate: new Date(createdDate),
+    type: OfferType[type as 'Buy' | 'Sell'],
+    price: Number.parseInt(price, 10),
+    categories: categories.split(';')
+      .map((name) => ({name})),
   };
 }

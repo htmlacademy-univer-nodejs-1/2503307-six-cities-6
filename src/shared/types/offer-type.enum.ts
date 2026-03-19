@@ -1,4 +1,4 @@
 export enum OfferType {
-  Buy = 'buy',
-  Sell = 'sell'
+  Buy = 'Buy',
+  Sell = 'Sell',
 }
