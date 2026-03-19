@@ -11,4 +11,9 @@
 .DS_Store
 coverage
 *.log
+
+# Local environment files
 .env
+
+# Editor/IDE artifacts
+.42c/
