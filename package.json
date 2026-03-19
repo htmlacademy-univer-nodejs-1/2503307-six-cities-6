@@ -10,25 +10,54 @@
   "main": "main.js",
   "scripts": {
     "start": "npm run build && node ./dist/main.js",
+    "start:dev": "npm run build && node ./dist/main.js | pino-pretty",
     "build": "npm run clean && npm run compile",
     "lint": "eslint src/ --ext .ts",
     "compile": "tsc -p tsconfig.json",
     "clean": "rimraf dist",
-    "ts": "ts-node"
+    "ts": "ts-node",
+    "mock-server": "json-server --watch mocks/mock-server-data.json"
   },
   "devDependencies": {
+    "@types/convict": "^6.1.6",
+    "@types/got": "^9.6.12",
     "@types/node": "18.16.3",
     "@typescript-eslint/eslint-plugin": "5.46.0",
     "@typescript-eslint/parser": "5.46.0",
     "eslint": "8.39.0",
     "eslint-config-htmlacademy": "9.1.1",
+    "json-server": "^1.0.0-beta.6",
+    "pino-pretty": "^13.1.3",
     "rimraf": "3.0.2",
     "ts-node": "10.9.1",
-    "typescript": "4.9.5"
+    "typescript": "^5.9.3"
   },
   "type": "module",
   "engines": {
     "node": "^18.0.0",
     "npm": ">=8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seazerth/2503307-six-cities-6.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Seazerth/2503307-six-cities-6/issues"
+  },
+  "homepage": "https://github.com/Seazerth/2503307-six-cities-6#readme",
+  "dependencies": {
+    "@typegoose/typegoose": "^13.2.1",
+    "chalk": "^5.6.2",
+    "class-validator": "^0.15.1",
+    "convict": "^6.2.4",
+    "convict-format-with-validator": "^6.2.0",
+    "dotenv": "^17.3.1",
+    "got": "^14.6.6",
+    "inversify": "^7.11.0",
+    "mongoose": "^9.2.4",
+    "pino": "^10.3.1",
+    "reflect-metadata": "^0.2.2"
   }
 }
