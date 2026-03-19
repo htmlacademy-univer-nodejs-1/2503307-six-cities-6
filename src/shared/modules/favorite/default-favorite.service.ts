@@ -16,7 +16,7 @@ export class DefaultFavoriteService implements FavoriteService {
 
   public async addToFavorites(userId: string, offerId: string): Promise<void> {
     const existingFavorite = await this.favoriteModel.findOne({ userId, offerId }).exec();
-    
+
     if (existingFavorite) {
       this.logger.warn(`Offer ${offerId} is already in favorites for user ${userId}`);
       return;
@@ -29,7 +29,7 @@ export class DefaultFavoriteService implements FavoriteService {
 
   public async removeFromFavorites(userId: string, offerId: string): Promise<void> {
     const result = await this.favoriteModel.deleteOne({ userId, offerId }).exec();
-    
+
     if (result.deletedCount === 0) {
       this.logger.warn(`Offer ${offerId} was not in favorites for user ${userId}`);
       return;
@@ -39,14 +39,14 @@ export class DefaultFavoriteService implements FavoriteService {
     if (otherFavorites.length === 0) {
       await this.offerModel.findByIdAndUpdate(offerId, { isFavorite: false });
     }
-    
+
     this.logger.info(`Offer ${offerId} removed from favorites for user ${userId}`);
   }
 
   public async getFavoriteOffers(userId: string): Promise<DocumentType<OfferEntity>[]> {
     const favorites = await this.favoriteModel.find({ userId }).exec();
-    const offerIds = favorites.map(fav => fav.offerId);
-    
+    const offerIds = favorites.map((fav) => fav.offerId);
+
     return this.offerModel
       .find({ _id: { $in: offerIds } })
       .populate(['authorId', 'categories'])

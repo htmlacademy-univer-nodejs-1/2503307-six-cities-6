@@ -43,24 +43,24 @@ export class DefaultCommentService implements CommentService {
       .findByIdAndUpdate(commentId, dto, {new: true})
       .populate(['userId', 'offerId'])
       .exec();
-    
+
     if (comment) {
       await this.updateOfferRating(comment.offerId.toString());
       this.logger.info(`Comment ${commentId} updated`);
     }
-    
+
     return comment;
   }
 
   public async deleteById(commentId: string): Promise<DocumentType<CommentEntity> | null> {
     const comment = await this.commentModel.findByIdAndDelete(commentId).exec();
-    
+
     if (comment) {
       await this.updateOfferRating(comment.offerId.toString());
       await this.offerModel.findByIdAndUpdate(comment.offerId, {'$inc': {commentCount: -1}});
       this.logger.info(`Comment ${commentId} deleted`);
     }
-    
+
     return comment;
   }
 
@@ -76,11 +76,11 @@ export class DefaultCommentService implements CommentService {
 
   public async calculateOfferRating(offerId: string): Promise<number> {
     const comments = await this.commentModel.find({offerId}).exec();
-    
+
     if (comments.length === 0) {
       return 1;
     }
-    
+
     const totalRating = comments.reduce((sum, comment) => sum + comment.rating, 0);
     return Math.round((totalRating / comments.length) * 10) / 10;
   }
