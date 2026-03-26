@@ -1,12 +1,18 @@
 import { Container } from 'inversify';
-import { Component } from '../../types/component.enum.js';
+import { types } from '@typegoose/typegoose';
+import { Component } from '../../types/index.js';
 import { FavoriteService } from './favorite-service.interface.js';
 import { DefaultFavoriteService } from './default-favorite.service.js';
-import { FavoriteModel } from './favorite.entity.js';
+import { FavoriteEntity, FavoriteModel } from './favorite.entity.js';
+import { Controller } from '../../libs/rest/controller/controller.interface.js';
+import { FavoriteController } from './favorite.controller.js';
 
-const favoriteContainer = new Container();
+export function createFavoriteContainer() {
+  const favoriteContainer = new Container();
 
-favoriteContainer.bind<FavoriteService>(Component.FavoriteService).to(DefaultFavoriteService).inSingletonScope();
-favoriteContainer.bind(Component.FavoriteModel).toConstantValue(FavoriteModel);
+  favoriteContainer.bind<FavoriteService>(Component.FavoriteService).to(DefaultFavoriteService).inSingletonScope();
+  favoriteContainer.bind<types.ModelType<FavoriteEntity>>(Component.FavoriteModel).toConstantValue(FavoriteModel);
+  favoriteContainer.bind<Controller>(Component.FavoriteController).to(FavoriteController);
 
-export default favoriteContainer;
+  return favoriteContainer;
+}
