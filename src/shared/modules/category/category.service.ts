@@ -1,12 +1,11 @@
 import { CategoryService } from './category-service.interface.js';
 import { inject, injectable } from 'inversify';
-import { Component } from '../../types/index.js';
+import { Component, SortType } from '../../types/index.js';
 import { Logger } from '../../libs/logger/index.js';
 import { DocumentType, types } from '@typegoose/typegoose';
 import { CategoryEntity } from './category.entity.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
-import { DEFAULT_CATEGORIES_IMAGES } from './category.constant.js';
-import { getRandomItem } from '../../helpers/index.js';
+import { MAX_CATEGORIES_COUNT } from './category.constant.js';
 
 @injectable()
 export class DefaultCategoryService implements CategoryService {
@@ -16,8 +15,7 @@ export class DefaultCategoryService implements CategoryService {
   ) {}
 
   public async create(dto: CreateCategoryDto): Promise<DocumentType<CategoryEntity>> {
-    const randomCategoryImage = getRandomItem(DEFAULT_CATEGORIES_IMAGES);
-    const result = await this.categoryModel.create({ ...dto, image: randomCategoryImage });
+    const result = await this.categoryModel.create(dto);
     this.logger.info(`New category created: ${dto.name}`);
     return result;
   }
@@ -41,6 +39,25 @@ export class DefaultCategoryService implements CategoryService {
   }
 
   public async find(): Promise<DocumentType<CategoryEntity>[]> {
-    return this.categoryModel.find().exec();
+    return this.categoryModel
+      .aggregate([
+        {
+          $lookup: {
+            from: 'offers',
+            let: { categoryId: '$_id'},
+            pipeline: [
+              { $match: { $expr: { $in: ['$$categoryId', '$categories'] } } },
+              { $project: { _id: 1}}
+            ],
+            as: 'offers'
+          },
+        },
+        { $addFields:
+            { id: { $toString: '$_id'}, offerCount: { $size: '$offers'} }
+        },
+        { $unset: 'offers' },
+        { $limit: MAX_CATEGORIES_COUNT },
+        { $sort: { offerCount: SortType.Down } }
+      ]).exec();
   }
 }

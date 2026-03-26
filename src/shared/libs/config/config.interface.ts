@@ -1,5 +1,3 @@
-export interface Config {
-  port: number;
-  databaseUrl: string;
-  salt: string;
+export interface Config<U> {
+  get<T extends keyof U>(key: T): U[T];
 }
