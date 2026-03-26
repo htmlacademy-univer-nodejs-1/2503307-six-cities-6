@@ -18,7 +18,7 @@ export class FavoriteController extends BaseController {
   public addToFavorites = asyncHandler(async (req: Request, res: Response) => {
     const { offerId } = req.params;
     const { userId } = req.body;
-    
+
     await this.favoriteService.addToFavorites(userId as string, offerId as string);
     this.ok(res, { message: 'Offer added to favorites' });
   });
@@ -26,24 +26,24 @@ export class FavoriteController extends BaseController {
   public removeFromFavorites = asyncHandler(async (req: Request, res: Response) => {
     const { offerId } = req.params;
     const { userId } = req.body;
-    
+
     await this.favoriteService.removeFromFavorites(userId as string, offerId as string);
     this.ok(res, { message: 'Offer removed from favorites' });
   });
 
   public getFavorites = asyncHandler(async (req: Request, res: Response) => {
     const { userId } = req.params;
-    
+
     const favorites = await this.favoriteService.getFavoriteOffers(userId as string);
-    
+
     this.ok(res, favorites);
   });
 
   public checkIsFavorite = asyncHandler(async (req: Request, res: Response) => {
     const { userId, offerId } = req.params;
-    
+
     const isFavorite = await this.favoriteService.isFavorite(userId as string, offerId as string);
-    
+
     this.ok(res, { isFavorite });
   });
 }

@@ -19,7 +19,7 @@ export class UserController extends BaseController {
   public getUserByEmail = asyncHandler(async (req: Request, res: Response) => {
     const { email } = req.params;
     const user = await this.userService.findByEmail(email as string);
-    
+
     if (!user) {
       this.notFound(res, `User with email ${email} not found`);
       return;
@@ -31,7 +31,7 @@ export class UserController extends BaseController {
   public createUser = asyncHandler(async (req: Request, res: Response) => {
     const { email, password, firstname, lastname, avatarPath } = req.body;
     const salt = 'test-salt-value'; // In real app, get from config
-    
+
     const createUserDto: CreateUserDto = {
       email: email as string,
       password: password as string,
@@ -39,7 +39,7 @@ export class UserController extends BaseController {
       lastname: lastname as string,
       avatarPath: avatarPath as string,
     };
-    
+
     const newUser = await this.userService.create(createUserDto, salt);
     this.created(res, newUser);
   });

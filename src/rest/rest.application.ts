@@ -60,7 +60,7 @@ export class RestApplication {
 
   private async _initServer(): Promise<void> {
     const port = this.config.get('PORT');
-    
+
     this.server.listen(port, () => {
       this.logger.info(`Server started on http://localhost:${port}`);
     });

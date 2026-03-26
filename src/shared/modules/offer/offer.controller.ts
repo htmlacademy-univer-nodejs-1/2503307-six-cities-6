@@ -26,7 +26,7 @@ export class OfferController extends BaseController {
   public getOfferById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const offer = await this.offerService.findById(id as string);
-    
+
     if (!offer) {
       this.notFound(res, `Offer with id ${id} not found`);
       return;
@@ -44,9 +44,9 @@ export class OfferController extends BaseController {
   public updateOffer = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const updateOfferDto: UpdateOfferDto = req.body;
-    
+
     const updatedOffer = await this.offerService.updateById(id as string, updateOfferDto);
-    
+
     if (!updatedOffer) {
       this.notFound(res, `Offer with id ${id} not found`);
       return;
@@ -58,7 +58,7 @@ export class OfferController extends BaseController {
   public deleteOffer = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const deletedOffer = await this.offerService.deleteById(id as string);
-    
+
     if (!deletedOffer) {
       this.notFound(res, `Offer with id ${id} not found`);
       return;

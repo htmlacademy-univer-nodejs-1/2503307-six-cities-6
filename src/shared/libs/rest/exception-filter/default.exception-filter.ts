@@ -49,18 +49,18 @@ export class DefaultExceptionFilter implements ExceptionFilter {
   }
 
   private isValidationError(error: Error): boolean {
-    return error.message.includes('validation') || 
-           error.message.includes('required') || 
+    return error.message.includes('validation') ||
+           error.message.includes('required') ||
            error.message.includes('invalid');
   }
 
   private isNotFoundError(error: Error): boolean {
-    return error.message.includes('not found') || 
+    return error.message.includes('not found') ||
            error.message.includes('does not exist');
   }
 
   private isUnauthorizedError(error: Error): boolean {
-    return error.message.includes('unauthorized') || 
+    return error.message.includes('unauthorized') ||
            error.message.includes('access denied') ||
            error.message.includes('forbidden');
   }
