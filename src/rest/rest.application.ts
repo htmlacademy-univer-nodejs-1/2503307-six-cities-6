@@ -15,8 +15,8 @@ import { ValidateDtoMiddleware } from '../shared/libs/rest/middleware/validate-d
 import { DocumentExistsMiddleware } from '../shared/libs/rest/middleware/document-exists.middleware.js';
 import { UploadFileMiddleware } from '../shared/libs/rest/middleware/upload-file.middleware.js';
 import { CreateCommentDto } from '../shared/modules/comment/dto/create-comment.dto.js';
-import { OfferService } from '../shared/modules/offer/offer-service.interface.js';
 import { UserService } from '../shared/modules/user/user-service.interface.js';
+import { CommentService } from '../shared/modules/comment/comment-service.interface.js';
 
 @injectable()
 export class RestApplication {
@@ -32,8 +32,8 @@ export class RestApplication {
     @inject(Component.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
     @inject(Component.CommentController) commentController: CommentController,
     @inject(Component.UserController) userController: UserController,
-    @inject(Component.OfferService) private readonly offerService: OfferService,
     @inject(Component.UserService) private readonly userService: UserService,
+    @inject(Component.CommentService) private readonly commentService: CommentService,
   ) {
     this.simpleController = new SimpleController(logger);
     this.commentController = commentController;
@@ -83,8 +83,20 @@ export class RestApplication {
     // GET /api/offers/:offerId/comments - get comments for offer with ObjectId validation
     this.server.get('/api/offers/:offerId/comments', validateOfferId.execute.bind(validateOfferId), this.commentController.index);
 
-    // GET /api/comments/:id - get specific comment with ObjectId validation
-    this.server.get('/api/comments/:id', validateCommentId.execute.bind(validateCommentId), this.commentController.show);
+    // Получение конкретного комментария (GET /api/comments/:id)
+    // Document existence is checked by middleware
+    const commentExistsMiddleware = new DocumentExistsMiddleware(
+      this.commentService,
+      'id',
+      'Comment',
+      this.logger
+    );
+    this.server.get(
+      '/api/comments/:id',
+      validateCommentId.execute.bind(validateCommentId),
+      commentExistsMiddleware.execute.bind(commentExistsMiddleware),
+      this.commentController.show
+    );
 
     // Avatar upload route with middleware
     const uploadFileMiddleware = new UploadFileMiddleware(this.config.get('UPLOAD_DIRECTORY'));

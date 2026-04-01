@@ -54,12 +54,6 @@ export class UserController extends BaseController {
     }
 
     const updatedUser = await this.userService.updateById(userId as string, { avatarPath });
-
-    if (!updatedUser) {
-      this.notFound(res, `User with id ${userId} not found`);
-      return;
-    }
-
-    this.ok(res, { ...updatedUser.toObject(), avatarPath });
+    this.ok(res, { ...updatedUser!.toObject(), avatarPath });
   });
 }
