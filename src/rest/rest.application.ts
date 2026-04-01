@@ -9,15 +9,21 @@ import { ExceptionFilter } from '../shared/libs/rest/exception-filter/index.js';
 import asyncHandler from 'express-async-handler';
 import { SimpleController } from '../shared/libs/rest/controller/simple.controller.js';
 import { CommentController } from '../shared/modules/comment/comment.controller.js';
+import { UserController } from '../shared/modules/user/user.controller.js';
 import { ValidateObjectIdMiddleware } from '../shared/libs/rest/middleware/validate-objectid.middleware.js';
 import { ValidateDtoMiddleware } from '../shared/libs/rest/middleware/validate-dto.middleware.js';
+import { DocumentExistsMiddleware } from '../shared/libs/rest/middleware/document-exists.middleware.js';
+import { UploadFileMiddleware } from '../shared/libs/rest/middleware/upload-file.middleware.js';
 import { CreateCommentDto } from '../shared/modules/comment/dto/create-comment.dto.js';
+import { OfferService } from '../shared/modules/offer/offer-service.interface.js';
+import { UserService } from '../shared/modules/user/user-service.interface.js';
 
 @injectable()
 export class RestApplication {
   private readonly server: Express = express();
   private readonly simpleController: SimpleController;
   private readonly commentController: CommentController;
+  private readonly userController: UserController;
 
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
@@ -25,9 +31,13 @@ export class RestApplication {
     @inject(Component.DatabaseClient) private readonly databaseClient: DatabaseClient,
     @inject(Component.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
     @inject(Component.CommentController) commentController: CommentController,
+    @inject(Component.UserController) userController: UserController,
+    @inject(Component.OfferService) private readonly offerService: OfferService,
+    @inject(Component.UserService) private readonly userService: UserService,
   ) {
     this.simpleController = new SimpleController(logger);
     this.commentController = commentController;
+    this.userController = userController;
   }
 
   private async _initDb() {
@@ -44,6 +54,10 @@ export class RestApplication {
 
   private _initMiddleware(): void {
     this.server.use(express.json());
+    this.server.use(
+      '/upload',
+      express.static(this.config.get('UPLOAD_DIRECTORY'))
+    );
     this.server.use(asyncHandler((req, _res, next) => {
       this.logger.info(`[${req.method}] ${req.path}`);
       next();
@@ -71,6 +85,25 @@ export class RestApplication {
 
     // GET /api/comments/:id - get specific comment with ObjectId validation
     this.server.get('/api/comments/:id', validateCommentId.execute.bind(validateCommentId), this.commentController.show);
+
+    // Avatar upload route with middleware
+    const uploadFileMiddleware = new UploadFileMiddleware(this.config.get('UPLOAD_DIRECTORY'));
+    const validateUserId = new ValidateObjectIdMiddleware('userId');
+    const documentExistsMiddleware = new DocumentExistsMiddleware(
+      this.userService,
+      'userId',
+      'User',
+      this.logger
+    );
+
+    // POST /api/users/:userId/avatar - upload avatar
+    this.server.post(
+      '/api/users/:userId/avatar',
+      validateUserId.execute.bind(validateUserId),
+      documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+      uploadFileMiddleware.execute.bind(uploadFileMiddleware),
+      this.userController.uploadAvatar
+    );
   }
 
   private _initExceptionFilters(): void {

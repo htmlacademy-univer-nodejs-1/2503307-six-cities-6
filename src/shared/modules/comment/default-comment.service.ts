@@ -89,4 +89,9 @@ export class DefaultCommentService implements CommentService {
     const newRating = await this.calculateOfferRating(offerId);
     await this.offerModel.findByIdAndUpdate(offerId, {rating: newRating});
   }
+
+  public async exists(commentId: string): Promise<boolean> {
+    const comment = await this.commentModel.exists({ _id: commentId });
+    return comment !== null;
+  }
 }
