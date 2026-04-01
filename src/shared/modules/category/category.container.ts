@@ -10,7 +10,7 @@ import { CategoryController } from './category.controller.js';
 export function createCategoryContainer() {
   const categoryContainer = new Container();
 
-  categoryContainer.bind<CategoryService>(Component.CategoryService).to(DefaultCategoryService);
+  categoryContainer.bind<CategoryService>(Component.CategoryService).to(DefaultCategoryService).inSingletonScope();
   categoryContainer.bind<types.ModelType<CategoryEntity>>(Component.CategoryModel).toConstantValue(CategoryModel);
   categoryContainer.bind<Controller>(Component.CategoryController).to(CategoryController);
 
