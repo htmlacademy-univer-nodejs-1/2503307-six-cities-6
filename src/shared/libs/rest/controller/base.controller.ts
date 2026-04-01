@@ -2,9 +2,23 @@ import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { Controller } from './controller.interface.js';
 import { Logger } from '../../logger/index.js';
+import { Middleware } from '../middleware/middleware.interface.js';
+import { injectable, inject } from 'inversify';
+import { Component } from '../../../types/index.js';
 
+@injectable()
 export abstract class BaseController implements Controller {
-  constructor(protected readonly logger: Logger) {}
+  protected middlewares: Middleware[] = [];
+
+  constructor(@inject(Component.Logger) protected readonly logger: Logger) {}
+
+  public addMiddleware(middleware: Middleware): void {
+    this.middlewares.push(middleware);
+  }
+
+  public getMiddlewares(): Middleware[] {
+    return this.middlewares;
+  }
 
   public async handleRequest(): Promise<void> {
     // Base implementation - to be overridden

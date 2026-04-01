@@ -8,19 +8,26 @@ import { getMongoURI } from '../shared/helpers/index.js';
 import { ExceptionFilter } from '../shared/libs/rest/exception-filter/index.js';
 import asyncHandler from 'express-async-handler';
 import { SimpleController } from '../shared/libs/rest/controller/simple.controller.js';
+import { CommentController } from '../shared/modules/comment/comment.controller.js';
+import { ValidateObjectIdMiddleware } from '../shared/libs/rest/middleware/validate-objectid.middleware.js';
+import { ValidateDtoMiddleware } from '../shared/libs/rest/middleware/validate-dto.middleware.js';
+import { CreateCommentDto } from '../shared/modules/comment/dto/create-comment.dto.js';
 
 @injectable()
 export class RestApplication {
   private readonly server: Express = express();
   private readonly simpleController: SimpleController;
+  private readonly commentController: CommentController;
 
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
     @inject(Component.Config) private readonly config: Config<RestSchema>,
     @inject(Component.DatabaseClient) private readonly databaseClient: DatabaseClient,
     @inject(Component.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
+    @inject(Component.CommentController) commentController: CommentController,
   ) {
     this.simpleController = new SimpleController(logger);
+    this.commentController = commentController;
   }
 
   private async _initDb() {
@@ -50,6 +57,20 @@ export class RestApplication {
     this.server.get('/api/categories', this.simpleController.getCategories);
     this.server.get('/api/users', this.simpleController.getUsers);
     this.server.get('/api/favorites', this.simpleController.getFavorites);
+
+    // Comments routes with middleware
+    const validateOfferId = new ValidateObjectIdMiddleware('offerId');
+    const validateCommentId = new ValidateObjectIdMiddleware('id');
+    const validateCommentDto = new ValidateDtoMiddleware(CreateCommentDto);
+
+    // POST /api/comments - create comment with DTO validation
+    this.server.post('/api/comments', validateCommentDto.execute.bind(validateCommentDto), this.commentController.create);
+
+    // GET /api/offers/:offerId/comments - get comments for offer with ObjectId validation
+    this.server.get('/api/offers/:offerId/comments', validateOfferId.execute.bind(validateOfferId), this.commentController.index);
+
+    // GET /api/comments/:id - get specific comment with ObjectId validation
+    this.server.get('/api/comments/:id', validateCommentId.execute.bind(validateCommentId), this.commentController.show);
   }
 
   private _initExceptionFilters(): void {
