@@ -43,4 +43,17 @@ export class UserController extends BaseController {
     const newUser = await this.userService.create(createUserDto, salt);
     this.created(res, newUser);
   });
+
+  public uploadAvatar = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const avatarPath = req.file?.path;
+
+    if (!avatarPath) {
+      this.badRequest(res, 'Avatar file is required');
+      return;
+    }
+
+    const updatedUser = await this.userService.updateById(userId as string, { avatarPath });
+    this.ok(res, { ...updatedUser!.toObject(), avatarPath });
+  });
 }
