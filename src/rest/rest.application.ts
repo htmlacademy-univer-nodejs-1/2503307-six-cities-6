@@ -10,6 +10,7 @@ import asyncHandler from 'express-async-handler';
 import { SimpleController } from '../shared/libs/rest/controller/simple.controller.js';
 import { CommentController } from '../shared/modules/comment/comment.controller.js';
 import { UserController } from '../shared/modules/user/user.controller.js';
+import { FavoriteController } from '../shared/modules/favorite/favorite.controller.js';
 import { ValidateObjectIdMiddleware } from '../shared/libs/rest/middleware/validate-objectid.middleware.js';
 import { ValidateDtoMiddleware } from '../shared/libs/rest/middleware/validate-dto.middleware.js';
 import { DocumentExistsMiddleware } from '../shared/libs/rest/middleware/document-exists.middleware.js';
@@ -26,6 +27,7 @@ export class RestApplication {
   private readonly simpleController: SimpleController;
   private readonly commentController: CommentController;
   private readonly userController: UserController;
+  private readonly favoriteController: FavoriteController;
 
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
@@ -34,12 +36,14 @@ export class RestApplication {
     @inject(Component.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
     @inject(Component.CommentController) commentController: CommentController,
     @inject(Component.UserController) userController: UserController,
+    @inject(Component.FavoriteController) favoriteController: FavoriteController,
     @inject(Component.CommentService) private readonly commentService: CommentService,
     @inject(Component.AuthService) private readonly authService: AuthService,
   ) {
     this.simpleController = new SimpleController(logger);
     this.commentController = commentController;
     this.userController = userController;
+    this.favoriteController = favoriteController;
   }
 
   private async _initDb() {
@@ -73,7 +77,6 @@ export class RestApplication {
     this.server.get('/api/categories', this.simpleController.getCategories);
     this.server.get('/api/users', this.simpleController.getUsers);
     this.server.post('/api/users', this.userController.createUser);
-    this.server.get('/api/favorites', this.simpleController.getFavorites);
 
     // Comments routes with middleware
     const validateOfferId = new ValidateObjectIdMiddleware('offerId');
@@ -123,6 +126,35 @@ export class RestApplication {
       '/api/users/me',
       privateRouteMiddleware.execute.bind(privateRouteMiddleware),
       this.userController.getCurrentUser
+    );
+
+    // Favorites routes (protected)
+    // POST /api/favorites/:offerId - add to favorites
+    this.server.post(
+      '/api/favorites/:offerId',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.addToFavorites
+    );
+
+    // DELETE /api/favorites/:offerId - remove from favorites
+    this.server.delete(
+      '/api/favorites/:offerId',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.removeFromFavorites
+    );
+
+    // GET /api/favorites - get user favorites
+    this.server.get(
+      '/api/favorites',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.getFavorites
+    );
+
+    // GET /api/favorites/:offerId/check - check if offer is favorite
+    this.server.get(
+      '/api/favorites/:offerId/check',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.checkIsFavorite
     );
   }
 
