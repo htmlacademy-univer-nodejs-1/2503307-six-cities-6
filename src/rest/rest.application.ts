@@ -14,9 +14,11 @@ import { ValidateObjectIdMiddleware } from '../shared/libs/rest/middleware/valid
 import { ValidateDtoMiddleware } from '../shared/libs/rest/middleware/validate-dto.middleware.js';
 import { DocumentExistsMiddleware } from '../shared/libs/rest/middleware/document-exists.middleware.js';
 import { UploadFileMiddleware } from '../shared/libs/rest/middleware/upload-file.middleware.js';
+import { PrivateRouteMiddleware } from '../shared/libs/rest/middleware/private-route.middleware.js';
 import { CreateCommentDto } from '../shared/modules/comment/dto/create-comment.dto.js';
-import { UserService } from '../shared/modules/user/user-service.interface.js';
+import { LoginDto } from '../shared/modules/auth/dto/login.dto.js';
 import { CommentService } from '../shared/modules/comment/comment-service.interface.js';
+import { AuthService } from '../shared/modules/auth/auth.service.interface.js';
 
 @injectable()
 export class RestApplication {
@@ -32,8 +34,8 @@ export class RestApplication {
     @inject(Component.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
     @inject(Component.CommentController) commentController: CommentController,
     @inject(Component.UserController) userController: UserController,
-    @inject(Component.UserService) private readonly userService: UserService,
     @inject(Component.CommentService) private readonly commentService: CommentService,
+    @inject(Component.AuthService) private readonly authService: AuthService,
   ) {
     this.simpleController = new SimpleController(logger);
     this.commentController = commentController;
@@ -70,6 +72,7 @@ export class RestApplication {
     this.server.get('/api/offers', this.simpleController.getOffers);
     this.server.get('/api/categories', this.simpleController.getCategories);
     this.server.get('/api/users', this.simpleController.getUsers);
+    this.server.post('/api/users', this.userController.createUser);
     this.server.get('/api/favorites', this.simpleController.getFavorites);
 
     // Comments routes with middleware
@@ -77,7 +80,12 @@ export class RestApplication {
     const validateCommentId = new ValidateObjectIdMiddleware('id');
     const validateCommentDto = new ValidateDtoMiddleware(CreateCommentDto);
 
-    // POST /api/comments - create comment with DTO validation
+    // Login/Logout routes
+    const validateLoginDto = new ValidateDtoMiddleware(LoginDto);
+    this.server.post('/api/auth/login', validateLoginDto.execute.bind(validateLoginDto), this.userController.login);
+    this.server.post('/api/auth/logout', this.userController.logout);
+
+    // POST /api/comments - create comment with DTO validation (protected route)
     this.server.post('/api/comments', validateCommentDto.execute.bind(validateCommentDto), this.commentController.create);
 
     // GET /api/offers/:offerId/comments - get comments for offer with ObjectId validation
@@ -98,23 +106,23 @@ export class RestApplication {
       this.commentController.show
     );
 
-    // Avatar upload route with middleware
+    // Avatar upload route (protected)
+    const privateRouteMiddleware = new PrivateRouteMiddleware(this.authService, this.logger);
     const uploadFileMiddleware = new UploadFileMiddleware(this.config.get('UPLOAD_DIRECTORY'));
-    const validateUserId = new ValidateObjectIdMiddleware('userId');
-    const documentExistsMiddleware = new DocumentExistsMiddleware(
-      this.userService,
-      'userId',
-      'User',
-      this.logger
-    );
 
-    // POST /api/users/:userId/avatar - upload avatar
+    // POST /api/users/avatar - upload avatar (user ID from token)
     this.server.post(
-      '/api/users/:userId/avatar',
-      validateUserId.execute.bind(validateUserId),
-      documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+      '/api/users/avatar',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
       uploadFileMiddleware.execute.bind(uploadFileMiddleware),
       this.userController.uploadAvatar
+    );
+
+    // GET /api/users/me - get current user (protected)
+    this.server.get(
+      '/api/users/me',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.userController.getCurrentUser
     );
   }
 

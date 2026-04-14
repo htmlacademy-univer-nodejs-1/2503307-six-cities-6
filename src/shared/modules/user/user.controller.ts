@@ -4,7 +4,9 @@ import { BaseController } from '../../libs/rest/controller/base.controller.js';
 import { Logger } from '../../libs/logger/index.js';
 import { Component } from '../../types/index.js';
 import { UserService } from './user-service.interface.js';
+import { AuthService } from '../auth/auth.service.interface.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
+import { LoginDto } from '../auth/dto/login.dto.js';
 import asyncHandler from 'express-async-handler';
 
 @injectable()
@@ -12,6 +14,7 @@ export class UserController extends BaseController {
   constructor(
     @inject(Component.Logger) protected readonly logger: Logger,
     @inject(Component.UserService) private readonly userService: UserService,
+    @inject(Component.AuthService) private readonly authService: AuthService,
   ) {
     super(logger);
   }
@@ -45,7 +48,6 @@ export class UserController extends BaseController {
   });
 
   public uploadAvatar = asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = req.params;
     const avatarPath = req.file?.path;
 
     if (!avatarPath) {
@@ -53,7 +55,37 @@ export class UserController extends BaseController {
       return;
     }
 
-    const updatedUser = await this.userService.updateById(userId as string, { avatarPath });
+    const user = res.locals.user;
+    const updatedUser = await this.userService.updateById(user.id, { avatarPath });
     this.ok(res, { ...updatedUser!.toObject(), avatarPath });
+  });
+
+  public login = asyncHandler(async (req: Request, res: Response) => {
+    const loginDto: LoginDto = req.body;
+    const user = await this.authService.login(loginDto.email, loginDto.password);
+
+    if (!user) {
+      this.unauthorized(res, 'Invalid email or password');
+      return;
+    }
+
+    const token = await this.authService.authenticate(user);
+    this.ok(res, { token, user });
+  });
+
+  public logout = asyncHandler(async (req: Request, res: Response) => {
+    const authorizationHeader = req.headers.authorization;
+
+    if (authorizationHeader) {
+      const token = authorizationHeader.split(' ')[1];
+      await this.authService.logout(token);
+    }
+
+    this.noContent(res);
+  });
+
+  public getCurrentUser = asyncHandler(async (_req: Request, res: Response) => {
+    const user = res.locals.user;
+    this.ok(res, user);
   });
 }
