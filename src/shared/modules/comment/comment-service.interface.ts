@@ -12,4 +12,5 @@ export interface CommentService {
   deleteByOfferId(offerId: string): Promise<number>;
   calculateOfferRating(offerId: string): Promise<number>;
   updateOfferRating(offerId: string): Promise<void>;
+  exists(commentId: string): Promise<boolean>;
 }
