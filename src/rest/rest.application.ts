@@ -11,11 +11,13 @@ import { SimpleController } from '../shared/libs/rest/controller/simple.controll
 import { CommentController } from '../shared/modules/comment/comment.controller.js';
 import { UserController } from '../shared/modules/user/user.controller.js';
 import { FavoriteController } from '../shared/modules/favorite/favorite.controller.js';
+import { OfferController } from '../shared/modules/offer/offer.controller.js';
 import { ValidateObjectIdMiddleware } from '../shared/libs/rest/middleware/validate-objectid.middleware.js';
 import { ValidateDtoMiddleware } from '../shared/libs/rest/middleware/validate-dto.middleware.js';
 import { DocumentExistsMiddleware } from '../shared/libs/rest/middleware/document-exists.middleware.js';
 import { UploadFileMiddleware } from '../shared/libs/rest/middleware/upload-file.middleware.js';
 import { PrivateRouteMiddleware } from '../shared/libs/rest/middleware/private-route.middleware.js';
+import { OptionalAuthMiddleware } from '../shared/libs/rest/middleware/optional-auth.middleware.js';
 import { CreateCommentDto } from '../shared/modules/comment/dto/create-comment.dto.js';
 import { LoginDto } from '../shared/modules/auth/dto/login.dto.js';
 import { CommentService } from '../shared/modules/comment/comment-service.interface.js';
@@ -28,6 +30,7 @@ export class RestApplication {
   private readonly commentController: CommentController;
   private readonly userController: UserController;
   private readonly favoriteController: FavoriteController;
+  private readonly offerController: OfferController;
 
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
@@ -37,6 +40,7 @@ export class RestApplication {
     @inject(Component.CommentController) commentController: CommentController,
     @inject(Component.UserController) userController: UserController,
     @inject(Component.FavoriteController) favoriteController: FavoriteController,
+    @inject(Component.OfferController) offerController: OfferController,
     @inject(Component.CommentService) private readonly commentService: CommentService,
     @inject(Component.AuthService) private readonly authService: AuthService,
   ) {
@@ -44,6 +48,7 @@ export class RestApplication {
     this.commentController = commentController;
     this.userController = userController;
     this.favoriteController = favoriteController;
+    this.offerController = offerController;
   }
 
   private async _initDb() {
@@ -73,7 +78,15 @@ export class RestApplication {
   private _initRoutes(): void {
     // Register API routes using simple controller
     this.server.get('/api/health', this.simpleController.getHealth);
-    this.server.get('/api/offers', this.simpleController.getOffers);
+
+    // Offers route with optional authentication (for isFavorite flag)
+    const optionalAuthMiddleware = new OptionalAuthMiddleware(this.authService);
+    this.server.get(
+      '/api/offers',
+      optionalAuthMiddleware.execute.bind(optionalAuthMiddleware),
+      this.offerController.getOffers
+    );
+
     this.server.get('/api/categories', this.simpleController.getCategories);
     this.server.get('/api/users', this.simpleController.getUsers);
     this.server.post('/api/users', this.userController.createUser);
