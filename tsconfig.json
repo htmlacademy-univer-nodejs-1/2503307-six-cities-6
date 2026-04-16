@@ -19,6 +19,7 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "sourceMap": true,
+    "rootDir": "./src",
     "outDir": "./dist",
     "emitDecoratorMetadata": true,
     "types": [
