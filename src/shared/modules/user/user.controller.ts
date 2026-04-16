@@ -32,7 +32,21 @@ export class UserController extends BaseController {
   });
 
   public createUser = asyncHandler(async (req: Request, res: Response) => {
+    // Only anonymous users can create new accounts (5.8.3)
+    if (res.locals.user) {
+      this.forbidden(res, 'Only anonymous users can create new accounts');
+      return;
+    }
+
     const { email, password, firstname, lastname, avatarPath } = req.body;
+
+    // Check if email already exists (5.8.4)
+    const existingUser = await this.userService.findByEmail(email as string);
+    if (existingUser) {
+      this.conflict(res, `User with email ${email} already exists`);
+      return;
+    }
+
     const salt = 'test-salt-value'; // In real app, get from config
 
     const createUserDto: CreateUserDto = {
@@ -44,7 +58,17 @@ export class UserController extends BaseController {
     };
 
     const newUser = await this.userService.create(createUserDto, salt);
-    this.created(res, newUser);
+
+    // Return user without password (5.8.6)
+    const userResponse = {
+      id: newUser.id,
+      email: newUser.email,
+      firstname: newUser.firstname,
+      lastname: newUser.lastname,
+      avatarPath: newUser.avatarPath,
+    };
+
+    this.created(res, userResponse);
   });
 
   public uploadAvatar = asyncHandler(async (req: Request, res: Response) => {

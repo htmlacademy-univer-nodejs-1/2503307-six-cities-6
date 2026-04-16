@@ -64,6 +64,13 @@ export abstract class BaseController implements Controller {
     });
   }
 
+  protected conflict(res: Response, message: string = 'Conflict'): void {
+    res.status(StatusCodes.CONFLICT).json({
+      error: message,
+      statusCode: StatusCodes.CONFLICT
+    });
+  }
+
   protected internalServerError(res: Response, message: string = 'Internal Server Error'): void {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: message,

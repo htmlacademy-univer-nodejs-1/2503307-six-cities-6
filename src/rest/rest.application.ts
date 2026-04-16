@@ -1,5 +1,6 @@
 import { inject, injectable } from 'inversify';
 import express, { Express } from 'express';
+import cors from 'cors';
 import { Logger } from '../shared/libs/logger/index.js';
 import { Config, RestSchema } from '../shared/libs/config/index.js';
 import { Component } from '../shared/types/index.js';
@@ -64,6 +65,7 @@ export class RestApplication {
   }
 
   private _initMiddleware(): void {
+    this.server.use(cors());
     this.server.use(express.json());
     this.server.use(
       '/upload',
@@ -79,12 +81,55 @@ export class RestApplication {
     // Register API routes using simple controller
     this.server.get('/api/health', this.simpleController.getHealth);
 
-    // Offers route with optional authentication (for isFavorite flag)
+    // Middleware instances
     const optionalAuthMiddleware = new OptionalAuthMiddleware(this.authService);
+    const privateRouteMiddleware = new PrivateRouteMiddleware(this.authService, this.logger);
+    const validateOfferId = new ValidateObjectIdMiddleware('id');
+
+    // Offers routes
+    // GET /api/offers - list offers (optional auth for isFavorite)
     this.server.get(
       '/api/offers',
       optionalAuthMiddleware.execute.bind(optionalAuthMiddleware),
       this.offerController.getOffers
+    );
+
+    // GET /api/offers/:id - get offer details (optional auth for isFavorite)
+    this.server.get(
+      '/api/offers/:id',
+      validateOfferId.execute.bind(validateOfferId),
+      optionalAuthMiddleware.execute.bind(optionalAuthMiddleware),
+      this.offerController.getOfferById
+    );
+
+    // POST /api/offers - create offer (only authorized)
+    this.server.post(
+      '/api/offers',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.offerController.createOffer
+    );
+
+    // PATCH /api/offers/:id - update offer (only authorized, own offer)
+    this.server.patch(
+      '/api/offers/:id',
+      validateOfferId.execute.bind(validateOfferId),
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.offerController.updateOffer
+    );
+
+    // DELETE /api/offers/:id - delete offer (only authorized, own offer)
+    this.server.delete(
+      '/api/offers/:id',
+      validateOfferId.execute.bind(validateOfferId),
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.offerController.deleteOffer
+    );
+
+    // GET /api/offers/premium/:city - premium offers for city
+    this.server.get(
+      '/api/offers/premium/:city',
+      optionalAuthMiddleware.execute.bind(optionalAuthMiddleware),
+      this.offerController.getPremiumOffers
     );
 
     this.server.get('/api/categories', this.simpleController.getCategories);
@@ -92,20 +137,29 @@ export class RestApplication {
     this.server.post('/api/users', this.userController.createUser);
 
     // Comments routes with middleware
-    const validateOfferId = new ValidateObjectIdMiddleware('offerId');
+    const validateOfferIdParam = new ValidateObjectIdMiddleware('offerId');
     const validateCommentId = new ValidateObjectIdMiddleware('id');
     const validateCommentDto = new ValidateDtoMiddleware(CreateCommentDto);
 
     // Login/Logout routes
     const validateLoginDto = new ValidateDtoMiddleware(LoginDto);
     this.server.post('/api/auth/login', validateLoginDto.execute.bind(validateLoginDto), this.userController.login);
-    this.server.post('/api/auth/logout', this.userController.logout);
+    this.server.post(
+      '/api/auth/logout',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.userController.logout
+    );
 
     // POST /api/comments - create comment with DTO validation (protected route)
-    this.server.post('/api/comments', validateCommentDto.execute.bind(validateCommentDto), this.commentController.create);
+    this.server.post(
+      '/api/comments',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      validateCommentDto.execute.bind(validateCommentDto),
+      this.commentController.create
+    );
 
     // GET /api/offers/:offerId/comments - get comments for offer with ObjectId validation
-    this.server.get('/api/offers/:offerId/comments', validateOfferId.execute.bind(validateOfferId), this.commentController.index);
+    this.server.get('/api/offers/:offerId/comments', validateOfferIdParam.execute.bind(validateOfferIdParam), this.commentController.index);
 
     // Получение конкретного комментария (GET /api/comments/:id)
     // Document existence is checked by middleware
@@ -123,7 +177,6 @@ export class RestApplication {
     );
 
     // Avatar upload route (protected)
-    const privateRouteMiddleware = new PrivateRouteMiddleware(this.authService, this.logger);
     const uploadFileMiddleware = new UploadFileMiddleware(this.config.get('UPLOAD_DIRECTORY'));
 
     // POST /api/users/avatar - upload avatar (user ID from token)

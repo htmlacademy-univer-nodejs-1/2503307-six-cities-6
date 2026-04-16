@@ -1,12 +1,15 @@
 import { Request, Response } from 'express';
 import { inject, injectable } from 'inversify';
+import { DocumentType } from '@typegoose/typegoose';
 import { BaseController } from '../../libs/rest/controller/base.controller.js';
 import { Logger } from '../../libs/logger/index.js';
 import { Component } from '../../types/index.js';
 import { OfferService } from './offer-service.interface.js';
 import { FavoriteService } from '../favorite/favorite-service.interface.js';
+import { OfferEntity } from './offer.entity.js';
 import { CreateOfferDto } from './dto/create-offer.dto.js';
 import { UpdateOfferDto } from './dto/update-offer.dto.js';
+import { DEFAULT_OFFER_COUNT } from './offer.constant.js';
 import asyncHandler from 'express-async-handler';
 
 @injectable()
@@ -20,26 +23,11 @@ export class OfferController extends BaseController {
   }
 
   public getOffers = asyncHandler(async (req: Request, res: Response) => {
-    const { limit = 25 } = req.query;
+    const { limit = DEFAULT_OFFER_COUNT } = req.query;
     const offers = await this.offerService.find(Number(limit));
-
     const user = res.locals.user;
-
-    if (user) {
-      const offersWithFavorite = await Promise.all(
-        offers.map(async (offer) => {
-          const isFavorite = await this.favoriteService.isFavorite(user.id, offer.id);
-          return { ...offer.toObject(), isFavorite };
-        })
-      );
-      this.ok(res, offersWithFavorite);
-    } else {
-      const offersWithFavorite = offers.map((offer) => ({
-        ...offer.toObject(),
-        isFavorite: false
-      }));
-      this.ok(res, offersWithFavorite);
-    }
+    const offersWithFavorite = await this.enrichWithFavorite(offers, user);
+    this.ok(res, offersWithFavorite);
   });
 
   public getOfferById = asyncHandler(async (req: Request, res: Response) => {
@@ -51,7 +39,14 @@ export class OfferController extends BaseController {
       return;
     }
 
-    this.ok(res, offer);
+    const user = res.locals.user;
+    let isFavorite = false;
+
+    if (user) {
+      isFavorite = await this.favoriteService.isFavorite((user as { id: string }).id, offer.id);
+    }
+
+    this.ok(res, { ...offer.toObject(), isFavorite });
   });
 
   public createOffer = asyncHandler(async (req: Request, res: Response) => {
@@ -85,4 +80,28 @@ export class OfferController extends BaseController {
 
     this.noContent(res);
   });
+
+  public getPremiumOffers = asyncHandler(async (req: Request, res: Response) => {
+    const { city } = req.params;
+    const premiumOffers = await this.offerService.findPremiumByCity(city as string);
+    const user = res.locals.user;
+    const offersWithFavorite = await this.enrichWithFavorite(premiumOffers, user);
+    this.ok(res, offersWithFavorite);
+  });
+
+  protected async enrichWithFavorite(offers: DocumentType<OfferEntity>[], user?: unknown) {
+    if (!user) {
+      return offers.map((offer: DocumentType<OfferEntity>) => ({
+        ...offer.toObject(),
+        isFavorite: false
+      }));
+    }
+
+    return Promise.all(
+      offers.map(async (offer: DocumentType<OfferEntity>) => {
+        const isFavorite = await this.favoriteService.isFavorite((user as { id: string }).id, offer.id);
+        return { ...offer.toObject(), isFavorite };
+      })
+    );
+  }
 }
