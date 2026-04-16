@@ -430,16 +430,20 @@ class SixCitiesApp {
     const offerData = {
       title: document.getElementById('offer-title').value,
       description: document.getElementById('offer-description').value,
+      postDate: new Date(),
       city: document.getElementById('offer-city').value,
       previewImage: document.getElementById('offer-preview').value,
       images: [document.getElementById('offer-preview').value], // Placeholder
       isPremium: document.getElementById('offer-premium').checked,
+      isFavorite: false,
       type: document.getElementById('offer-type').value,
       rooms: parseInt(document.getElementById('offer-rooms').value),
       guests: parseInt(document.getElementById('offer-guests').value),
       price: parseInt(document.getElementById('offer-price').value),
-      amenities: [], // Can be extended
+      goods: [], // Correct field name for backend
       rating: parseFloat(document.getElementById('offer-rating').value),
+      categories: [],
+      authorId: api.currentUser?.id || '', // Get current user ID
       location: { latitude: 0, longitude: 0 }, // Default location
     };
 
