@@ -86,10 +86,6 @@ The frontend communicates with the following API endpoints:
 - `DELETE /api/favorites/:offerId` - Remove offer from favorites (requires auth)
 - `GET /api/favorites/:offerId/check` - Check if offer is in favorites (requires auth)
 
-### Categories
-
-- `GET /api/categories` - Get list of categories
-
 ## Data Structures
 
 ### Offer Object

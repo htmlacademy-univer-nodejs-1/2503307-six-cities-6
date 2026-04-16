@@ -49,7 +49,7 @@ export class DefaultFavoriteService implements FavoriteService {
 
     return this.offerModel
       .find({ _id: { $in: offerIds } })
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 

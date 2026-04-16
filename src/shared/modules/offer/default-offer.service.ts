@@ -25,30 +25,32 @@ export class DefaultOfferService implements OfferService {
   public async findById(offerId: string): Promise<DocumentType<OfferEntity> | null> {
     return this.offerModel
       .findById(offerId)
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 
   public async find(limit: number = DEFAULT_OFFER_COUNT): Promise<DocumentType<OfferEntity>[]> {
     return this.offerModel
       .find()
+      .sort({ postDate: -1 })
       .limit(limit)
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 
   public async findPremiumByCity(city: string): Promise<DocumentType<OfferEntity>[]> {
     return this.offerModel
       .find({ city, isPremium: true })
+      .sort({ postDate: -1 })
       .limit(3)
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 
   public async findFavorites(userId: string): Promise<DocumentType<OfferEntity>[]> {
     return this.offerModel
       .find({ isFavorite: true, authorId: userId })
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 
@@ -61,15 +63,7 @@ export class DefaultOfferService implements OfferService {
   public async updateById(offerId: string, dto: UpdateOfferDto): Promise<DocumentType<OfferEntity> | null> {
     return this.offerModel
       .findByIdAndUpdate(offerId, dto, {new: true})
-      .populate(['authorId', 'categories'])
-      .exec();
-  }
-
-  public async findByCategoryId(categoryId: string, count?: number): Promise<DocumentType<OfferEntity>[]> {
-    const limit = count ?? DEFAULT_OFFER_COUNT;
-    return this.offerModel
-      .find({categories: categoryId}, {}, {limit})
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 
@@ -90,7 +84,7 @@ export class DefaultOfferService implements OfferService {
       .find()
       .sort({ createdAt: SortType.Down })
       .limit(count)
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 
@@ -99,7 +93,7 @@ export class DefaultOfferService implements OfferService {
       .find()
       .sort({ commentCount: SortType.Down })
       .limit(count)
-      .populate(['authorId', 'categories'])
+      .populate(['authorId'])
       .exec();
   }
 

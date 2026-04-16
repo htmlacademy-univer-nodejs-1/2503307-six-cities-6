@@ -15,7 +15,10 @@ export class DefaultUserService implements UserService {
   ) {}
 
   public async create(dto: CreateUserDto, salt: string): Promise<DocumentType<UserEntity>> {
-    const user = new UserEntity(dto);
+    const user = new UserEntity({
+      ...dto,
+      avatarPath: dto.avatarPath ?? 'https://api.dicebear.com/9.x/initials/svg?seed=Six%20Cities&backgroundColor=3b82f6',
+    });
     user.setPassword(dto.password, salt);
 
     const result = await this.userModel.create(user);
@@ -25,7 +28,7 @@ export class DefaultUserService implements UserService {
   }
 
   public async findByEmail(email: string): Promise<DocumentType<UserEntity> | null> {
-    return this.userModel.findOne({email});
+    return this.userModel.findOne({email}).select('+password').exec();
   }
 
   public async findOrCreate(dto: CreateUserDto, salt: string): Promise<DocumentType<UserEntity>> {

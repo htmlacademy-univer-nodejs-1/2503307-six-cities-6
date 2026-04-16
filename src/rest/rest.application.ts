@@ -20,9 +20,13 @@ import { UploadFileMiddleware } from '../shared/libs/rest/middleware/upload-file
 import { PrivateRouteMiddleware } from '../shared/libs/rest/middleware/private-route.middleware.js';
 import { OptionalAuthMiddleware } from '../shared/libs/rest/middleware/optional-auth.middleware.js';
 import { CreateCommentDto } from '../shared/modules/comment/dto/create-comment.dto.js';
+import { CreateOfferDto } from '../shared/modules/offer/dto/create-offer.dto.js';
 import { LoginDto } from '../shared/modules/auth/dto/login.dto.js';
 import { CommentService } from '../shared/modules/comment/comment-service.interface.js';
 import { AuthService } from '../shared/modules/auth/auth.service.interface.js';
+import { CreateUserDto } from '../shared/modules/user/dto/create-user.dto.js';
+import { UpdateOfferDto } from '../shared/modules/offer/dto/update-offer.dto.js';
+import { UpdateUserDto } from '../shared/modules/user/dto/update-user.dto.js';
 
 @injectable()
 export class RestApplication {
@@ -67,6 +71,7 @@ export class RestApplication {
   private _initMiddleware(): void {
     this.server.use(cors());
     this.server.use(express.json());
+    this.server.use('/static', express.static('markup/img'));
     this.server.use(
       '/upload',
       express.static(this.config.get('UPLOAD_DIRECTORY'))
@@ -103,9 +108,12 @@ export class RestApplication {
     );
 
     // POST /api/offers - create offer (only authorized)
+    const validateCreateOfferDto = new ValidateDtoMiddleware(CreateOfferDto);
+    const validateUpdateOfferDto = new ValidateDtoMiddleware(UpdateOfferDto);
     this.server.post(
       '/api/offers',
       privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      validateCreateOfferDto.execute.bind(validateCreateOfferDto),
       this.offerController.createOffer
     );
 
@@ -114,6 +122,7 @@ export class RestApplication {
       '/api/offers/:id',
       validateOfferId.execute.bind(validateOfferId),
       privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      validateUpdateOfferDto.execute.bind(validateUpdateOfferDto),
       this.offerController.updateOffer
     );
 
@@ -132,9 +141,15 @@ export class RestApplication {
       this.offerController.getPremiumOffers
     );
 
-    this.server.get('/api/categories', this.simpleController.getCategories);
     this.server.get('/api/users', this.simpleController.getUsers);
-    this.server.post('/api/users', this.userController.createUser);
+    const validateCreateUserDto = new ValidateDtoMiddleware(CreateUserDto);
+    this.server.post(
+      '/api/users',
+      optionalAuthMiddleware.execute.bind(optionalAuthMiddleware),
+      validateCreateUserDto.execute.bind(validateCreateUserDto),
+      this.userController.createUser
+    );
+    const validateUpdateUserDto = new ValidateDtoMiddleware(UpdateUserDto);
 
     // Comments routes with middleware
     const validateOfferIdParam = new ValidateObjectIdMiddleware('offerId');
@@ -192,6 +207,12 @@ export class RestApplication {
       '/api/users/me',
       privateRouteMiddleware.execute.bind(privateRouteMiddleware),
       this.userController.getCurrentUser
+    );
+    this.server.patch(
+      '/api/users/me',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      validateUpdateUserDto.execute.bind(validateUpdateUserDto),
+      this.userController.updateCurrentUser
     );
 
     // Favorites routes (protected)

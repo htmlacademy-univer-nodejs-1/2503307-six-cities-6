@@ -1,7 +1,7 @@
 {
-  "name": "buy-and-sell",
+  "name": "six-cities",
   "version": "5.0.0",
-  "description": "Проект «{{projectTitle}}» от HTML Academy",
+  "description": "REST API сервис проекта «Шесть городов»",
   "keywords": [
     "rest",
     "api",
@@ -9,6 +9,7 @@
   ],
   "main": "main.js",
   "scripts": {
+    "cli": "npm run build && node ./cli.js",
     "start": "npm run build && node ./dist/main.rest.js",
     "start:dev": "nodemon",
     "build": "npm run clean && npm run compile",

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Six Cities - Rental Service</title>
+  <link rel="icon" href="http://localhost:4000/static/logo.svg" type="image/svg+xml">
   <style>
     * {
       margin: 0;
@@ -47,6 +48,23 @@
     .user-name {
       color: #ecf0f1;
       padding: 0 1rem;
+    }
+
+    .avatar-button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.35);
     }
 
     .container {
@@ -163,6 +181,7 @@
 
     .offer-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.5rem;
       margin-top: 1rem;
     }
@@ -210,6 +229,28 @@
 
     .form-group {
       margin-bottom: 1.5rem;
+    }
+
+    .profile-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .profile-avatar-large {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #ecf0f1;
+    }
+
+    .profile-email {
+      color: #7f8c8d;
+      text-align: center;
+      word-break: break-word;
     }
 
     .form-group label {

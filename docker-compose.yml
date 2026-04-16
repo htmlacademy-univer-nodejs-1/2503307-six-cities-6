@@ -1,6 +1,5 @@
-version: "3.9"
 services:
-  db:
+  mongo:
     image: mongo:4.2
     restart: always
     container_name: six-cities_mongodb
@@ -8,20 +7,24 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: test
     ports:
-      - 27017:27017
+      - 27018:27017
     volumes:
       - six-cities_data:/data/db
 
-  db_ui:
-    image: mongo-express:latest
+  mongo-express:
+    image: mongo-express:1.0.2
     restart: always
     container_name: six-cities_mongo_express
     ports:
       - 8081:8081
     environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: 27017
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: test
-      ME_CONFIG_MONGODB_URL: mongodb://admin:test@db:27017/
+      ME_CONFIG_MONGODB_AUTH_DATABASE: admin
+    depends_on:
+      - mongo
 
 volumes:
   six-cities_data:

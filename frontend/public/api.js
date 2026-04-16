@@ -4,6 +4,7 @@
  */
 
 const API_BASE_URL = 'http://localhost:4000/api';
+const API_ORIGIN = 'http://localhost:4000';
 
 class SixCitiesAPI {
   constructor() {
@@ -14,6 +15,53 @@ class SixCitiesAPI {
   setToken(token) {
     this.token = token;
     localStorage.setItem('authToken', token);
+  }
+
+  resolveAssetUrl(url) {
+    if (!url) {
+      return url;
+    }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
+    return `${API_ORIGIN}${url}`;
+  }
+
+  normalizeUser(user) {
+    if (!user) {
+      return user;
+    }
+
+    return {
+      ...user,
+      avatarPath: this.resolveAssetUrl(user.avatarPath),
+    };
+  }
+
+  normalizeOffer(offer) {
+    if (!offer) {
+      return offer;
+    }
+
+    return {
+      ...offer,
+      previewImage: this.resolveAssetUrl(offer.previewImage),
+      images: Array.isArray(offer.images) ? offer.images.map((image) => this.resolveAssetUrl(image)) : offer.images,
+      author: offer.author ? this.normalizeUser(offer.author) : offer.author,
+    };
+  }
+
+  normalizeComment(comment) {
+    if (!comment) {
+      return comment;
+    }
+
+    return {
+      ...comment,
+      author: comment.author ? this.normalizeUser(comment.author) : comment.author,
+    };
   }
 
   getAuthHeaders() {
@@ -41,7 +89,7 @@ class SixCitiesAPI {
       
       if (!response.ok) {
         const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
+        throw new Error(error.message || error.error || `HTTP ${response.status}`);
       }
 
       if (response.status === 204) {
@@ -50,23 +98,62 @@ class SixCitiesAPI {
 
       return await response.json();
     } catch (error) {
-      console.error('API Error:', error);
       throw error;
     }
   }
 
   // Authentication endpoints
   async register(userData) {
-    return this.request('/users', 'POST', userData);
+    return this.normalizeUser(await this.request('/users', 'POST', userData));
+  }
+
+  async uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const headers = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/avatar`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+      throw new Error(error.message || error.error || `HTTP ${response.status}`);
+    }
+
+    const data = this.normalizeUser(await response.json());
+    this.currentUser = data;
+    return data;
+  }
+
+  async updateProfile(profileData) {
+    const data = await this.request('/users/me', 'PATCH', profileData);
+    if (data?.token) {
+      this.setToken(data.token);
+      this.currentUser = this.normalizeUser(data.user);
+    }
+    return {
+      ...data,
+      user: this.normalizeUser(data.user),
+    };
   }
 
   async login(email, password) {
     const data = await this.request('/auth/login', 'POST', { email, password });
     if (data && data.token) {
       this.setToken(data.token);
-      this.currentUser = data.user;
+      this.currentUser = this.normalizeUser(data.user);
     }
-    return data;
+    return {
+      ...data,
+      user: this.normalizeUser(data.user),
+    };
   }
 
   async logout() {
@@ -75,7 +162,7 @@ class SixCitiesAPI {
 
   async checkAuth() {
     try {
-      const user = await this.request('/users/me');
+      const user = this.normalizeUser(await this.request('/users/me'));
       this.currentUser = user;
       return user;
     } catch (error) {
@@ -87,19 +174,20 @@ class SixCitiesAPI {
 
   // Offers endpoints
   async getOffers(limit = 60) {
-    return this.request(`/offers?limit=${limit}`);
+    const offers = await this.request(`/offers?limit=${limit}`);
+    return offers.map((offer) => this.normalizeOffer(offer));
   }
 
   async getOfferById(offerId) {
-    return this.request(`/offers/${offerId}`);
+    return this.normalizeOffer(await this.request(`/offers/${offerId}`));
   }
 
   async createOffer(offerData) {
-    return this.request('/offers', 'POST', offerData);
+    return this.normalizeOffer(await this.request('/offers', 'POST', offerData));
   }
 
   async updateOffer(offerId, offerData) {
-    return this.request(`/offers/${offerId}`, 'PATCH', offerData);
+    return this.normalizeOffer(await this.request(`/offers/${offerId}`, 'PATCH', offerData));
   }
 
   async deleteOffer(offerId) {
@@ -108,21 +196,32 @@ class SixCitiesAPI {
 
   // Premium offers
   async getPremiumOffers(city) {
-    return this.request(`/offers/premium/${city}`);
+    const offers = await this.request(`/offers/premium/${city}`);
+    return offers.map((offer) => this.normalizeOffer(offer));
+  }
+
+  async getUsers() {
+    return this.request('/users');
   }
 
   // Comments endpoints
   async getComments(offerId) {
-    return this.request(`/offers/${offerId}/comments`);
+    const comments = await this.request(`/offers/${offerId}/comments`);
+    return comments.map((comment) => this.normalizeComment(comment));
   }
 
   async createComment(commentData) {
-    return this.request('/comments', 'POST', commentData);
+    return this.normalizeComment(await this.request('/comments', 'POST', commentData));
+  }
+
+  async getCommentById(commentId) {
+    return this.normalizeComment(await this.request(`/comments/${commentId}`));
   }
 
   // Favorites endpoints
   async getFavorites() {
-    return this.request('/favorites');
+    const offers = await this.request('/favorites');
+    return offers.map((offer) => this.normalizeOffer(offer));
   }
 
   async addToFavorites(offerId) {
@@ -134,12 +233,8 @@ class SixCitiesAPI {
   }
 
   async checkIsFavorite(offerId) {
-    return this.request(`/favorites/${offerId}/check`);
-  }
-
-  // Categories
-  async getCategories() {
-    return this.request('/categories');
+    const data = await this.request(`/favorites/${offerId}/check`);
+    return Boolean(data?.isFavorite);
   }
 }
 
