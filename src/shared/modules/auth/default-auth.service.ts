@@ -1,7 +1,9 @@
 import { inject, injectable } from 'inversify';
+import * as jose from 'jose';
 import { AuthService } from './auth.service.interface.js';
 import { Component } from '../../types/index.js';
 import { Logger } from '../../libs/logger/index.js';
+import { Config, RestSchema } from '../../libs/config/index.js';
 import { DocumentType } from '@typegoose/typegoose';
 import { UserEntity } from '../user/user.entity.js';
 import { UserService } from '../user/user-service.interface.js';
@@ -10,40 +12,53 @@ import { UserService } from '../user/user-service.interface.js';
 export class DefaultAuthService implements AuthService {
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
-    @inject(Component.UserService) private readonly userService: UserService
+    @inject(Component.UserService) private readonly userService: UserService,
+    @inject(Component.Config) private readonly config: Config<RestSchema>
   ) {}
 
   public async authenticate(user: DocumentType<UserEntity>): Promise<string> {
-    // В реальном приложении здесь будет генерация JWT токена
-    // Для демонстрации возвращаем простую строку
-    const token = `token_${user._id}_${Date.now()}`;
+    const secret = new TextEncoder().encode(this.config.get('JWT_SECRET'));
+    const token = await new jose.SignJWT({
+      email: user.email,
+      id: user.id
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('2h')
+      .sign(secret);
 
-    this.logger.info(`User ${user.email} authenticated successfully`);
+    this.logger.info(`User ${user.email} authenticated with JWT token`);
     return token;
   }
 
   public async verify(token: string): Promise<DocumentType<UserEntity> | null> {
-    // В реальном приложении здесь будет проверка JWT токена
-    // Для демонстрации просто ищем пользователя по email из токена
-    const email = token.split('_')[1];
-    const user = await this.userService.findByEmail(email);
-
-    this.logger.info(`Token verification: ${user ? 'success' : 'failed'}`);
-    return user;
+    try {
+      const secret = new TextEncoder().encode(this.config.get('JWT_SECRET'));
+      const { payload } = await jose.jwtVerify(token, secret);
+      const user = await this.userService.findByEmail(payload.email as string);
+      return user;
+    } catch {
+      return null;
+    }
   }
 
-  public async login(email: string, _password: string): Promise<DocumentType<UserEntity> | null> {
-    // В реальном приложении здесь будет проверка учетных данных
-    // Для демонстрации просто ищем пользователя по email
+  public async login(email: string, password: string): Promise<DocumentType<UserEntity> | null> {
     const user = await this.userService.findByEmail(email);
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await user.comparePassword(password, this.config.get('SALT'));
+    if (!isPasswordValid) {
+      return null;
+    }
 
     this.logger.info(`User ${email} logged in successfully`);
     return user;
   }
 
-  public async logout(token: string): Promise<void> {
-    // В реальном приложении здесь может быть добавление токена в черный список
-    this.logger.info(`User with token ${token} logged out`);
+  public async logout(_token: string): Promise<void> {
+    this.logger.info('User logged out');
   }
 
   public async getCurrentUser(token: string): Promise<DocumentType<UserEntity> | null> {

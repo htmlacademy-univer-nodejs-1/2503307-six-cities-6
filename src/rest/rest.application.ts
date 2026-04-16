@@ -10,13 +10,18 @@ import asyncHandler from 'express-async-handler';
 import { SimpleController } from '../shared/libs/rest/controller/simple.controller.js';
 import { CommentController } from '../shared/modules/comment/comment.controller.js';
 import { UserController } from '../shared/modules/user/user.controller.js';
+import { FavoriteController } from '../shared/modules/favorite/favorite.controller.js';
+import { OfferController } from '../shared/modules/offer/offer.controller.js';
 import { ValidateObjectIdMiddleware } from '../shared/libs/rest/middleware/validate-objectid.middleware.js';
 import { ValidateDtoMiddleware } from '../shared/libs/rest/middleware/validate-dto.middleware.js';
 import { DocumentExistsMiddleware } from '../shared/libs/rest/middleware/document-exists.middleware.js';
 import { UploadFileMiddleware } from '../shared/libs/rest/middleware/upload-file.middleware.js';
+import { PrivateRouteMiddleware } from '../shared/libs/rest/middleware/private-route.middleware.js';
+import { OptionalAuthMiddleware } from '../shared/libs/rest/middleware/optional-auth.middleware.js';
 import { CreateCommentDto } from '../shared/modules/comment/dto/create-comment.dto.js';
-import { UserService } from '../shared/modules/user/user-service.interface.js';
+import { LoginDto } from '../shared/modules/auth/dto/login.dto.js';
 import { CommentService } from '../shared/modules/comment/comment-service.interface.js';
+import { AuthService } from '../shared/modules/auth/auth.service.interface.js';
 
 @injectable()
 export class RestApplication {
@@ -24,6 +29,8 @@ export class RestApplication {
   private readonly simpleController: SimpleController;
   private readonly commentController: CommentController;
   private readonly userController: UserController;
+  private readonly favoriteController: FavoriteController;
+  private readonly offerController: OfferController;
 
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
@@ -32,12 +39,16 @@ export class RestApplication {
     @inject(Component.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
     @inject(Component.CommentController) commentController: CommentController,
     @inject(Component.UserController) userController: UserController,
-    @inject(Component.UserService) private readonly userService: UserService,
+    @inject(Component.FavoriteController) favoriteController: FavoriteController,
+    @inject(Component.OfferController) offerController: OfferController,
     @inject(Component.CommentService) private readonly commentService: CommentService,
+    @inject(Component.AuthService) private readonly authService: AuthService,
   ) {
     this.simpleController = new SimpleController(logger);
     this.commentController = commentController;
     this.userController = userController;
+    this.favoriteController = favoriteController;
+    this.offerController = offerController;
   }
 
   private async _initDb() {
@@ -67,17 +78,30 @@ export class RestApplication {
   private _initRoutes(): void {
     // Register API routes using simple controller
     this.server.get('/api/health', this.simpleController.getHealth);
-    this.server.get('/api/offers', this.simpleController.getOffers);
+
+    // Offers route with optional authentication (for isFavorite flag)
+    const optionalAuthMiddleware = new OptionalAuthMiddleware(this.authService);
+    this.server.get(
+      '/api/offers',
+      optionalAuthMiddleware.execute.bind(optionalAuthMiddleware),
+      this.offerController.getOffers
+    );
+
     this.server.get('/api/categories', this.simpleController.getCategories);
     this.server.get('/api/users', this.simpleController.getUsers);
-    this.server.get('/api/favorites', this.simpleController.getFavorites);
+    this.server.post('/api/users', this.userController.createUser);
 
     // Comments routes with middleware
     const validateOfferId = new ValidateObjectIdMiddleware('offerId');
     const validateCommentId = new ValidateObjectIdMiddleware('id');
     const validateCommentDto = new ValidateDtoMiddleware(CreateCommentDto);
 
-    // POST /api/comments - create comment with DTO validation
+    // Login/Logout routes
+    const validateLoginDto = new ValidateDtoMiddleware(LoginDto);
+    this.server.post('/api/auth/login', validateLoginDto.execute.bind(validateLoginDto), this.userController.login);
+    this.server.post('/api/auth/logout', this.userController.logout);
+
+    // POST /api/comments - create comment with DTO validation (protected route)
     this.server.post('/api/comments', validateCommentDto.execute.bind(validateCommentDto), this.commentController.create);
 
     // GET /api/offers/:offerId/comments - get comments for offer with ObjectId validation
@@ -98,23 +122,52 @@ export class RestApplication {
       this.commentController.show
     );
 
-    // Avatar upload route with middleware
+    // Avatar upload route (protected)
+    const privateRouteMiddleware = new PrivateRouteMiddleware(this.authService, this.logger);
     const uploadFileMiddleware = new UploadFileMiddleware(this.config.get('UPLOAD_DIRECTORY'));
-    const validateUserId = new ValidateObjectIdMiddleware('userId');
-    const documentExistsMiddleware = new DocumentExistsMiddleware(
-      this.userService,
-      'userId',
-      'User',
-      this.logger
-    );
 
-    // POST /api/users/:userId/avatar - upload avatar
+    // POST /api/users/avatar - upload avatar (user ID from token)
     this.server.post(
-      '/api/users/:userId/avatar',
-      validateUserId.execute.bind(validateUserId),
-      documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+      '/api/users/avatar',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
       uploadFileMiddleware.execute.bind(uploadFileMiddleware),
       this.userController.uploadAvatar
+    );
+
+    // GET /api/users/me - get current user (protected)
+    this.server.get(
+      '/api/users/me',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.userController.getCurrentUser
+    );
+
+    // Favorites routes (protected)
+    // POST /api/favorites/:offerId - add to favorites
+    this.server.post(
+      '/api/favorites/:offerId',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.addToFavorites
+    );
+
+    // DELETE /api/favorites/:offerId - remove from favorites
+    this.server.delete(
+      '/api/favorites/:offerId',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.removeFromFavorites
+    );
+
+    // GET /api/favorites - get user favorites
+    this.server.get(
+      '/api/favorites',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.getFavorites
+    );
+
+    // GET /api/favorites/:offerId/check - check if offer is favorite
+    this.server.get(
+      '/api/favorites/:offerId/check',
+      privateRouteMiddleware.execute.bind(privateRouteMiddleware),
+      this.favoriteController.checkIsFavorite
     );
   }
 

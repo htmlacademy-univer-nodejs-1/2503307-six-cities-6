@@ -17,32 +17,33 @@ export class FavoriteController extends BaseController {
 
   public addToFavorites = asyncHandler(async (req: Request, res: Response) => {
     const { offerId } = req.params;
-    const { userId } = req.body;
+    const user = res.locals.user;
 
-    await this.favoriteService.addToFavorites(userId as string, offerId as string);
+    await this.favoriteService.addToFavorites(user.id, offerId as string);
     this.ok(res, { message: 'Offer added to favorites' });
   });
 
   public removeFromFavorites = asyncHandler(async (req: Request, res: Response) => {
     const { offerId } = req.params;
-    const { userId } = req.body;
+    const user = res.locals.user;
 
-    await this.favoriteService.removeFromFavorites(userId as string, offerId as string);
+    await this.favoriteService.removeFromFavorites(user.id, offerId as string);
     this.ok(res, { message: 'Offer removed from favorites' });
   });
 
-  public getFavorites = asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = req.params;
+  public getFavorites = asyncHandler(async (_req: Request, res: Response) => {
+    const user = res.locals.user;
 
-    const favorites = await this.favoriteService.getFavoriteOffers(userId as string);
+    const favorites = await this.favoriteService.getFavoriteOffers(user.id);
 
     this.ok(res, favorites);
   });
 
   public checkIsFavorite = asyncHandler(async (req: Request, res: Response) => {
-    const { userId, offerId } = req.params;
+    const { offerId } = req.params;
+    const user = res.locals.user;
 
-    const isFavorite = await this.favoriteService.isFavorite(userId as string, offerId as string);
+    const isFavorite = await this.favoriteService.isFavorite(user.id, offerId as string);
 
     this.ok(res, { isFavorite });
   });
