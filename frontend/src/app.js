@@ -427,13 +427,14 @@ class SixCitiesApp {
 
   async handleAddOffer(event) {
     event.preventDefault();
+    const imageUrl = document.getElementById('offer-preview').value;
     const offerData = {
       title: document.getElementById('offer-title').value,
       description: document.getElementById('offer-description').value,
       postDate: new Date(),
       city: document.getElementById('offer-city').value,
-      previewImage: document.getElementById('offer-preview').value,
-      images: [document.getElementById('offer-preview').value], // Placeholder
+      previewImage: imageUrl,
+      images: [imageUrl, imageUrl, imageUrl, imageUrl, imageUrl, imageUrl], // Exactly 6 images required
       isPremium: document.getElementById('offer-premium').checked,
       isFavorite: false,
       type: document.getElementById('offer-type').value,
@@ -442,9 +443,9 @@ class SixCitiesApp {
       price: parseInt(document.getElementById('offer-price').value),
       goods: [], // Correct field name for backend
       rating: parseFloat(document.getElementById('offer-rating').value),
-      categories: [],
+      categories: [], // Can add category IDs if needed
       authorId: api.currentUser?.id || '', // Get current user ID
-      location: { latitude: 0, longitude: 0 }, // Default location
+      location: { latitude: 48.8566, longitude: 2.3522 }, // Paris coordinates
     };
 
     try {
