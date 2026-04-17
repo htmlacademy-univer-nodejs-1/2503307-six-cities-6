@@ -15,6 +15,22 @@ export class FavoriteController extends BaseController {
     super(logger);
   }
 
+  private serializeOffer(offer: Record<string, unknown>) {
+    return {
+      id: String(offer.id ?? offer._id ?? ''),
+      title: offer.title,
+      postDate: offer.postDate,
+      city: offer.city,
+      previewImage: offer.previewImage,
+      isPremium: offer.isPremium,
+      isFavorite: offer.isFavorite,
+      rating: offer.rating,
+      type: offer.type,
+      price: offer.price,
+      commentCount: offer.commentCount,
+    };
+  }
+
   public addToFavorites = asyncHandler(async (req: Request, res: Response) => {
     const { offerId } = req.params;
     const user = res.locals.user;
@@ -36,7 +52,7 @@ export class FavoriteController extends BaseController {
 
     const favorites = await this.favoriteService.getFavoriteOffers(user.id);
 
-    this.ok(res, favorites);
+    this.ok(res, favorites.map((offer) => this.serializeOffer(offer.toObject() as Record<string, unknown>)));
   });
 
   public checkIsFavorite = asyncHandler(async (req: Request, res: Response) => {

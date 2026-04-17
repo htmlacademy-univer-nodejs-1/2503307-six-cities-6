@@ -1,102 +1,347 @@
 openapi: 3.1.0
 info:
-  title: API сервер для демо-проекта «Куплю. Продам».
-  description: |-
-    * Список ресурсов и маршрутов сервера «Куплю. Продам».
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
-  version: 2.0.0
+  title: Six Cities REST API
+  version: 1.0.0
+  description: REST API для сервиса аренды жилья «Шесть городов».
+
+servers:
+  - url: http://localhost:4000
+
 tags:
-  - name: offers
-    description: Действия с объявлениями.
-  - name: categories
-    description: Действия с категориями.
-  - name: comments
-    description: Действия с комментариями.
   - name: users
-    description: Действия с пользователем.
+  - name: auth
+  - name: offers
+  - name: comments
+  - name: favorites
 
 paths:
-  /users/register:
+  /api/users:
     post:
-      tags:
-        - users
+      tags: [users]
       summary: Регистрация пользователя
-      description: Регистрирует нового пользователя.
-
       requestBody:
-        description: Информация для создания нового пользователя.
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/createUser'
-        required: true
-
+              $ref: '#/components/schemas/CreateUser'
       responses:
-        "201":
-          description: Пользователь зарегистрирован. Объект пользователя.
+        '201':
+          description: Пользователь создан
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/user'
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Ошибка валидации
+        '409':
+          description: Пользователь уже существует
 
-        "409":
-          description: Пользователь с таким email уже существует.
-
-
-  /users/login:
+  /api/auth/login:
     post:
-      tags:
-        - users
-      summary: Авторизация пользователя
-      description: Авторизует пользователя на основе логина и пароля
+      tags: [auth]
+      summary: Вход пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        '200':
+          description: Успешный вход
+        '401':
+          description: Неверный логин или пароль
 
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Выход пользователя
+      responses:
+        '204':
+          description: Успешный выход
+        '401':
+          description: Требуется авторизация
+
+  /api/users/me:
     get:
-      tags:
-        - users
+      tags: [users]
       summary: Проверка состояния пользователя
-      description: Возвращает информацию по авторизованному пользователю
+      responses:
+        '200':
+          description: Пользователь авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Требуется авторизация
 
-  /users/{userId}/avatar:
+  /api/offers:
+    get:
+      tags: [offers]
+      summary: Получить список предложений
+      responses:
+        '200':
+          description: Список предложений
     post:
-      tags:
-        - users
-      summary: Загрузить изображение аватара
-      description: Загружает изображение аватара пользователя. Изображение
-        аватара должно быть в формате `png` или `jpg`.
+      tags: [offers]
+      summary: Создать предложение
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOffer'
+      responses:
+        '201':
+          description: Предложение создано
+        '400':
+          description: Ошибка валидации
+        '401':
+          description: Требуется авторизация
 
+  /api/offers/{offerId}:
+    get:
+      tags: [offers]
+      summary: Получить карточку предложения
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Карточка предложения
+        '404':
+          description: Предложение не найдено
+    patch:
+      tags: [offers]
+      summary: Обновить своё предложение
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Предложение обновлено
+        '403':
+          description: Чужое предложение
+    delete:
+      tags: [offers]
+      summary: Удалить своё предложение
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Предложение удалено
+        '403':
+          description: Чужое предложение
+
+  /api/offers/{offerId}/comments:
+    get:
+      tags: [comments]
+      summary: Получить комментарии предложения
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список комментариев
+
+  /api/comments:
+    post:
+      tags: [comments]
+      summary: Добавить комментарий
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComment'
+      responses:
+        '201':
+          description: Комментарий создан
+        '400':
+          description: Ошибка валидации
+        '401':
+          description: Требуется авторизация
+
+  /api/offers/premium/{city}:
+    get:
+      tags: [offers]
+      summary: Получить премиальные предложения города
+      parameters:
+        - in: path
+          name: city
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список премиальных предложений
+
+  /api/favorites:
+    get:
+      tags: [favorites]
+      summary: Получить избранные предложения
+      responses:
+        '200':
+          description: Список избранного
+        '401':
+          description: Требуется авторизация
+
+  /api/favorites/{offerId}:
+    post:
+      tags: [favorites]
+      summary: Добавить предложение в избранное
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Добавлено в избранное
+        '401':
+          description: Требуется авторизация
+    delete:
+      tags: [favorites]
+      summary: Удалить предложение из избранного
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Удалено из избранного
+        '401':
+          description: Требуется авторизация
 
 components:
   schemas:
-    createUser:
+    User:
       type: object
-
-      properties:
-        email:
-          type: string
-          example: keks@htmlacademy.ru
-
-        firstname:
-          type: string
-          example: Keks
-
-        lastname:
-          type: string
-          example: Cat
-
-        password:
-          type: string
-          example: 123456
-
-    user:
-      type: object
-
       properties:
         id:
           type: string
-          example: 6329c3d6a04ab1061c6425ea
-
         email:
           type: string
-          example: keks@htmlacademy.ru
+        firstname:
+          type: string
+        lastname:
+          type: string
+        avatarPath:
+          type: string
+        userType:
+          type: string
+          enum: [ordinary, pro]
+
+    CreateUser:
+      type: object
+      required: [email, firstname, lastname, password, userType]
+      properties:
+        email:
+          type: string
+        firstname:
+          type: string
+        lastname:
+          type: string
+        password:
+          type: string
+        avatarPath:
+          type: string
+        userType:
+          type: string
+          enum: [ordinary, pro]
+
+    Login:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    CreateOffer:
+      type: object
+      required:
+        - title
+        - description
+        - postDate
+        - city
+        - previewImage
+        - images
+        - isPremium
+        - rating
+        - type
+        - rooms
+        - guests
+        - price
+        - goods
+        - location
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        postDate:
+          type: string
+          format: date-time
+        city:
+          type: string
+        previewImage:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        isPremium:
+          type: boolean
+        rating:
+          type: number
+        type:
+          type: string
+          enum: [apartment, house, room, hotel]
+        rooms:
+          type: integer
+        guests:
+          type: integer
+        price:
+          type: integer
+        goods:
+          type: array
+          items:
+            type: string
+        location:
+          type: object
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
+
+    CreateComment:
+      type: object
+      required: [offerId, text, rating]
+      properties:
+        offerId:
+          type: string
+        text:
+          type: string
+        rating:
+          type: integer

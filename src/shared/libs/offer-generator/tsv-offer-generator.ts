@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { OfferGenerator } from './offer-generator.interface.js';
 import { MockServerData, OfferType } from '../../types/index.js';
-import { generateRandomValue, getRandomItem, getRandomItems } from '../../helpers/index.js';
+import { generateRandomValue, getRandomItem } from '../../helpers/index.js';
 
 const MIN_PRICE = 500;
 const MAX_PRICE = 2000;
@@ -13,11 +13,10 @@ export class TSVOfferGenerator implements OfferGenerator {
   constructor(private readonly mockData: MockServerData) {}
 
   public generate(): string {
-    const categories = getRandomItems<string>(this.mockData.categories).join(';');
     const title = getRandomItem<string>(this.mockData.titles);
     const description = getRandomItem<string>(this.mockData.descriptions);
     const photo = getRandomItem<string>(this.mockData.offerImages);
-    const type = getRandomItem([OfferType.Buy, OfferType.Sell]);
+    const type = getRandomItem([OfferType.Apartment, OfferType.House, OfferType.Room, OfferType.Hotel]);
     const price = generateRandomValue(MIN_PRICE, MAX_PRICE).toString();
     const author = getRandomItem(this.mockData.users);
     const email = getRandomItem(this.mockData.emails);
@@ -31,7 +30,7 @@ export class TSVOfferGenerator implements OfferGenerator {
 
     return [
       title, description, createdDate,
-      photo, type, price, categories,
+      photo, type, price, 'Breakfast',
       firstname, lastname, email, avatar,
     ].join('\t');
   }

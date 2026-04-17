@@ -11,7 +11,6 @@ export interface OfferService {
   findFavorites(userId: string): Promise<DocumentType<OfferEntity>[]>;
   deleteById(offerId: string): Promise<DocumentType<OfferEntity> | null>;
   updateById(offerId: string, dto: UpdateOfferDto): Promise<DocumentType<OfferEntity> | null>;
-  findByCategoryId(categoryId: string, count?: number): Promise<DocumentType<OfferEntity>[]>;
   incCommentCount(offerId: string): Promise<DocumentType<OfferEntity> | null>;
   findNew(count: number): Promise<DocumentType<OfferEntity>[]>;
   findDiscussed(count: number): Promise<DocumentType<OfferEntity>[]>;
@@ -19,4 +18,3 @@ export interface OfferService {
   addToFavorites(offerId: string, userId: string): Promise<void>;
   removeFromFavorites(offerId: string, userId: string): Promise<void>;
 }
-

@@ -15,8 +15,8 @@ export class DefaultExceptionFilter implements ExceptionFilter {
     // Handle different types of errors
     if (this.isValidationError(error)) {
       res.status(StatusCodes.BAD_REQUEST).json({
-        error: 'Validation Error',
-        details: error.message,
+        error: error.message,
+        message: error.message,
         statusCode: StatusCodes.BAD_REQUEST
       });
       return;
@@ -43,7 +43,7 @@ export class DefaultExceptionFilter implements ExceptionFilter {
     // Default: Internal Server Error
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Internal Server Error',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
+      message: error.message,
       statusCode: StatusCodes.INTERNAL_SERVER_ERROR
     });
   }
