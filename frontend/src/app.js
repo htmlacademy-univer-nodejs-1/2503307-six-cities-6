@@ -36,10 +36,15 @@ class SixCitiesApp {
   }
 
   canDeleteOffer(offer) {
+    const offerAuthorId = this.getEntityId(offer?.author || offer?.authorId);
+
     return Boolean(
       this.isAuthenticated &&
       this.currentUser &&
-      this.currentUser.userType === 'pro' &&
+      (
+        this.currentUser.userType === 'pro' ||
+        offerAuthorId === this.getEntityId(this.currentUser)
+      ) &&
       this.getEntityId(offer)
     );
   }

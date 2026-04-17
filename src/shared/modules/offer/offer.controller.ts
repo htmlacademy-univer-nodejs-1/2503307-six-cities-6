@@ -170,6 +170,7 @@ export class OfferController extends BaseController {
       return;
     }
 
+    await this.favoriteService.removeByOfferId(id as string);
     await this.commentService.deleteByOfferId(id as string);
     const deletedOffer = await this.offerService.deleteById(id as string);
 

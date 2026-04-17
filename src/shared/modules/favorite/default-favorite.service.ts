@@ -43,6 +43,12 @@ export class DefaultFavoriteService implements FavoriteService {
     this.logger.info(`Offer ${offerId} removed from favorites for user ${userId}`);
   }
 
+  public async removeByOfferId(offerId: string): Promise<number> {
+    const result = await this.favoriteModel.deleteMany({ offerId }).exec();
+    this.logger.info(`All favorites for offer ${offerId} deleted`);
+    return result.deletedCount;
+  }
+
   public async getFavoriteOffers(userId: string): Promise<DocumentType<OfferEntity>[]> {
     const favorites = await this.favoriteModel.find({ userId }).exec();
     const offerIds = favorites.map((fav) => fav.offerId);

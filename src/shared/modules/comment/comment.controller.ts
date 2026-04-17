@@ -53,7 +53,6 @@ export class CommentController extends BaseController {
     const createCommentDto: CreateCommentDto = {
       ...req.body as CreateCommentDto,
       userId: user.id,
-      postDate: new Date(),
     };
     const newComment = await this.commentService.create(createCommentDto);
     this.created(res, this.serializeComment(newComment.toObject() as Record<string, unknown>));
